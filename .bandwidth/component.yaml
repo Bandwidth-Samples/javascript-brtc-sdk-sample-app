@@ -1,0 +1,17 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  schemaVersion: v1.0.0
+  name: javascript-brtc-sdk-sample-app
+  description: Sample application that implements the BRTC JS SDK to make demo calls
+  annotations:
+    github.com/project-slug: Bandwidth/javascript-brtc-sdk-sample-app
+  organization: BW
+  costCenter: 
+  platformType: 
+  buildPlatform: GitHub Actions
+spec:
+  type: Service
+  owner: github/band-programmable-voice
+  lifecycle: Prototype
+  
