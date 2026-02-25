@@ -1,0 +1,60 @@
+// CallControlButton.scss
+
+.call-start-end button {
+  width: var(--button-size);
+  height: var(--button-size);
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.call-start-end button:hover {
+  cursor: pointer;
+}
+
+.call-start-end button:disabled {
+  cursor: default;
+  background-color: var(--grey15);
+}
+
+.start-call-button {
+  background-color: var(--green65);
+}
+
+.start-call-button:hover:enabled {
+  background-color: var(--green90);
+}
+
+.end-call-button {
+  background-color: var(--red55);
+}
+
+.end-call-button:hover:enabled {
+  background-color: var(--red90);
+}
+
+.backspace-button {
+  grid-column: 3 / 4;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  outline: none;
+  border: none;
+  background-color: var(--background-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform: scaleX(-1);
+}
+
+.backspace-button:disabled {
+  cursor: default;
+  background-color: var(--grey15);
+}
+
+.backspace-button:hover:enabled {
+  cursor: pointer;
+  background-color: var(--blue5);
+}

@@ -1,0 +1,51 @@
+// DigitGrid.scss
+
+@import './utils/_variables.scss';
+
+.digit-grid {
+  margin-top: 20px;
+  width: 290px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-gap: 1.2rem;
+  justify-items: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.digit {
+  width: $button-size;
+  height: $button-size;
+  border: 2px solid $blue65;
+  color: $blue65;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  &:hover {
+    cursor: pointer;
+    color: $blue70;
+    border: 2px solid $blue70;
+    background-color: $blue10;
+  }
+  &:active {
+    color: $blue75;
+    border: 2px solid $blue75;
+    background-color: $blue15;
+  }
+}
+
+.digit-number {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 2rem;
+}
+
+.digit-letters {
+  font-size: 0.8rem;
+  font-weight: 400;
+  margin-top: 8px;
+  line-height: 1rem;
+}
