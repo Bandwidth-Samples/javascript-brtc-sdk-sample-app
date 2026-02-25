@@ -205,9 +205,10 @@ http://localhost:3000
 
 ## Learn More
 
-- [Bandwidth RTC Documentation](https://dev.bandwidth.com/docs/voice/webRtc/)
-- [Bandwidth Voice API](https://dev.bandwidth.com/docs/voice/)
-- [BRTC JavaScript SDK](https://github.com/Bandwidth/webrtc-node)
+- [Bandwidth RTC Endpoint API reference](https://dev.bandwidth.com/apis/brtc-apis/)
+- [Bandwidth RTC Connect Verb spec](https://dev.bandwidth.com/docs/voice/programmable-voice/bxml/connect)
+- [bandwidth-rtc Javascript SDK](https://www.npmjs.com/package/bandwidth-rtc)
+- [Bandwidth Programmable Voice APIs](https://dev.bandwidth.com/docs/voice/programmable-voice)
 
 ## Questions and Feedback
 
