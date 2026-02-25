@@ -107,7 +107,7 @@ function MediaCapture({bandwidthRtcClient}: {bandwidthRtcClient: BandwidthRtc} )
         if (!audioSource) {
             audioContext.resume()
 
-            audio = new Audio("/media/africa-toto.opus");
+            audio = new Audio("/media/afro-pop.opus");
             audio.muted = false
             let sourceNode = audioContext.createMediaElementSource(audio);
             let mediaStream = await handleMediaPublish(sourceNode)
