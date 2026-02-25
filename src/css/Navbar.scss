@@ -1,0 +1,25 @@
+// Navbar.scss
+
+@import './utils/_variables.scss';
+
+.navbar {
+    width: 100vw;
+    height: auto;
+    display: flex;
+    justify-content: flex-start;
+    background-color: $blue75;
+    padding: 16px 0;
+}
+
+.navbar-img {
+    width: auto;
+    height: 52px;
+    margin-left: 26px;
+}
+
+.text {
+    color: $white;
+    font-size: 36px;
+    font-weight: 300;
+    margin-left: 10px;
+}

@@ -1,0 +1,99 @@
+/* Sass Variables and Placeholders */
+
+/* Variables */
+
+// Fonts
+$overpass: 'Overpass';
+$overpass-bold: 'Overpass Bold';
+$overpass-mono: 'Overpass Mono';
+$material-icons: 'Material Icons';
+
+// Sizes
+$navbar-height: 69px;
+$navbar-offset: 15px;
+$wide-desktop-view-width: 2000px;
+$small-desktop-view-width: 1200px;
+$mobile-view-width: 996px;
+$medium-mobile-view-width: 700px;
+$slim-mobile-view-width: 480px;
+$ultra-slim-mobile-view-width: 360px;
+
+// Font Sizes
+$h1-font-size: 54px;
+$h2-font-size: 42px;
+$h3-font-size: 20px;
+
+$small-desktop-font-multiplier: 0.85;
+$mobile-font-multiplier: 0.75;
+$medium-mobile-font-multiplier: 0.65;
+$slim-mobile-font-multiplier: 0.6;
+$ultra-slim-mobile-font-multiplier: 0.5;
+
+$h1-font-size-small-desktop: calc(
+        $h1-font-size * $small-desktop-font-multiplier
+);
+$h1-font-size-mobile: calc($h1-font-size * $mobile-font-multiplier);
+$h1-font-size-slim-mobile: calc($h1-font-size * $slim-mobile-font-multiplier);
+$h1-font-size-ultra-slim-mobile: calc(
+        $h1-font-size * $ultra-slim-mobile-font-multiplier
+);
+
+$h2-font-size-small-desktop: calc(
+        $h2-font-size * $small-desktop-font-multiplier
+);
+$h2-font-size-mobile: calc($h2-font-size * $mobile-font-multiplier);
+$h2-font-size-slim-mobile: calc($h2-font-size * $slim-mobile-font-multiplier);
+$h2-font-size-ultra-slim-mobile: calc(
+        $h2-font-size * $ultra-slim-mobile-font-multiplier
+);
+
+$h3-font-size-small-desktop: calc(
+        $h3-font-size * $small-desktop-font-multiplier
+);
+$h3-font-size-mobile: calc($h3-font-size * $mobile-font-multiplier);
+$h3-font-size-slim-mobile: calc($h3-font-size * $slim-mobile-font-multiplier);
+$h3-font-size-ultra-slim-mobile: calc(
+        $h3-font-size * $ultra-slim-mobile-font-multiplier
+);
+
+// Colors
+$green65: rgb(2, 134, 99);
+$orange50: rgb(255, 111, 71);
+$orange65: rgb(181, 78, 51);
+$purple60: rgb(125, 71, 158);
+$lightBlue: rgb(224, 247, 253);
+$blue2: rgb(245, 251, 254);
+$blue5: rgb(230, 245, 253);
+$blue10: rgb(205, 235, 251);
+$blue15: rgb(180, 225, 249);
+$blue25: rgb(131, 205, 246);
+$blue35: rgb(81, 185, 243);
+$blue45: rgb(31, 165, 239);
+$blue50: rgb(7, 156, 238);
+$blue55: rgb(7, 140, 214);
+$blue60: rgb(7, 125, 191);
+$blue65: rgb(7, 110, 168);
+$blue70: rgb(7, 94, 145);
+$blue75: rgb(8, 79, 122);
+$blue80: rgb(8, 64, 98);
+$blue85: rgb(8, 48, 75);
+$blue90: rgb(8, 33, 52);
+$blue95: rgb(8, 18, 29);
+$white: rgb(255, 255, 255);
+$white5: rgba(255, 255, 255, 0.05);
+$white10: rgba(255, 255, 255, 0.1);
+$grey35: rgb(169, 167, 168);
+$black: rgb(0, 0, 0);
+
+// Light Mode
+$bg-color-light: $blue2;
+$shadow-color-light: rgb(218, 217, 217);
+$sample-bg-light: rgb(48, 56, 70);
+
+// Dark Mode
+$bg-color-dark: $blue95;
+$shadow-color-dark: $blue95;
+$sample-bg-dark: rgb(18, 18, 18);
+
+// Sizes
+$button-size: 82px;
