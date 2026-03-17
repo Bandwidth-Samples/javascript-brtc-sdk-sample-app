@@ -43,7 +43,7 @@ function App() {
     }
 
   // Fetch the WebSocket URL from env
-  const gatewayUrl = process.env.REACT_APP_GATEWAY_URL;
+  const gatewayUrl = process.env.REACT_APP_WSS_URL;
 
   return (
     <div className="App">
