@@ -10,13 +10,10 @@ const PROD_VOICE_URL = "https://voice.bandwidth.com/api/v2";
 
 function getEnvVars() {
     const requiredVars = [
-        'HTTP_BASE_URL',
-        'VOICE_URL',
         'CALLBACK_BASE_URL',
         'ACCOUNT_ID',
         'APPLICATION_ID',
         'BW_PASSWORD', // Only required if using BW_USERNAME
-        'BW_ID_URL',
         'FROM_NUMBER',
     ];
     const env = process.env;
@@ -31,7 +28,6 @@ function getEnvVars() {
         if (!env[v]) {
             // BW_PASSWORD is only required if using BW_USERNAME
             if (v === 'BW_PASSWORD' && !hasUserPass) continue;
-            if (v === 'BW_ID_HOSTNAME') continue; // has default
             throw new Error(`Missing required environment variable: ${v}`);
         }
     }
