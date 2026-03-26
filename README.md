@@ -1,5 +1,7 @@
 # Bandwidth WebRTC Browser Dialer Sample
 
+<img src="public/WebRTC-Icon-1024x1024.png" alt="WebRTC Icon" width="100" />
+
 A sample application demonstrating how to build a browser-based Bandwidth RTC dialer using the Bandwidth Real-Time Communications (BRTC) JavaScript SDK. This application showcases the BRTC product by allowing you to place calls to phone numbers of your choice. The connection to arbitrary call-ids and endpoints is in progress.
 
 ## Overview
