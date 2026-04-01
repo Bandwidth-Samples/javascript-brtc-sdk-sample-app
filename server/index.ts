@@ -112,10 +112,11 @@ async function placeCall(endpointId: string, toNumber: string, fromNumber: strin
     }
 
     let configuration: Configuration;
-    if (BW_USERNAME && BW_PASSWORD) {
-        configuration = new Configuration({ username: BW_USERNAME, password: BW_PASSWORD });
-    } else {
+    if (BW_ID_CLIENT_ID && BW_ID_CLIENT_SECRET) {
         configuration = new Configuration({ clientId: BW_ID_CLIENT_ID, clientSecret: BW_ID_CLIENT_SECRET });
+    } else {
+        const token = await getAuthToken();
+        configuration = new Configuration({ accessToken: token });
     }
 
     if (VOICE_URL !== PROD_VOICE_URL) {
