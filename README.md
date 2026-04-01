@@ -23,22 +23,23 @@ This sample application consists of two main components:
 ## Features
 
 ### Currently Supported
-- ✅ Make outbound calls from browser to phone numbers
-- ✅ Receive inbound calls on browser endpoints
-- ✅ Real-time audio streaming via Bandwidth RTC
-- ✅ Dynamic endpoint creation and management
-- ✅ Call state management and event handling
-- ✅ Audio device selection and control
+- Make outbound calls from browser to phone numbers
+- Receive inbound calls on browser endpoints
+- Real-time audio streaming via Bandwidth RTC
+- Dynamic endpoint creation and management
+- Call state management and event handling
+- Audio device selection and control
 
 ### In Progress
-- 🚧 Connection to arbitrary call-ids and endpoints
+- Connection to arbitrary call-ids and endpoints
 
 ## Architecture
 
 ```
 ┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
 │  Browser Client │ ◄─────► │  Express Server  │ ◄─────► │  Bandwidth API  │
-│   (React App)   │         │   (Node.js)      │         │  (Voice/BRTC)   │
+│  (React App)    │         │  (Node.js)       │         │  (Voice/BRTC)   │
+│  localhost:5000 │         │  localhost:3000   │         │                 │
 └─────────────────┘         └──────────────────┘         └─────────────────┘
   Bandwidth RTC                   HTTPS
                                      │
@@ -49,6 +50,11 @@ This sample application consists of two main components:
                             │  Callback URL    │
                             └──────────────────┘
 ```
+
+| Service          | Port | Description                        |
+|------------------|------|------------------------------------|
+| Express Server   | 3000 | Backend API and webhook handler    |
+| React Dev Server | 5000 | Frontend development server        |
 
 ## Prerequisites
 
@@ -115,15 +121,15 @@ CALLBACK_BASE_URL=https://your-callback-url.ngrok-free.app
 Start ngrok to expose your local server:
 
 ```bash
-ngrok http 5000
+ngrok http 3000
 ```
 
 Copy the ngrok URL and update `CALLBACK_BASE_URL` in `.env.local`.
 
 Update your Bandwidth Voice Application settings:
-- **Callback URL**: `https://your-ngrok-url.ngrok-free.app/api/callbacks/calls/initiate`
+- **Callback URL**: `https://your-ngrok-url.ngrok-free.app/callbacks/bandwidth`
 - **Call-initiated callback method**: `POST`
-- **Status URL**: `https://your-ngrok-url.ngrok-free.app/api/callbacks/calls/status`
+- **Status URL**: `https://your-ngrok-url.ngrok-free.app/callbacks/bandwidth/status`
 - **Status callback method**: `POST`
 
 ### 5. Run the Application
@@ -134,19 +140,19 @@ The application requires two processes running simultaneously:
 ```bash
 npm start
 ```
-This starts the Express server on port 5000.
+This starts the Express server on port 3000.
 
 **Terminal 2 - Start the React Development Server:**
 ```bash
 npm run react
 ```
-This starts the React app on port 3000.
+This starts the React app on port 5000.
 
 ### 6. Access the Application
 
 Open your browser and navigate to:
 ```
-http://localhost:3000
+http://localhost:5000
 ```
 
 ## How to Use
@@ -182,14 +188,19 @@ http://localhost:3000
 ## Key API Endpoints
 
 ### Frontend → Backend
-- `POST /api/endpoint` - Create a new Bandwidth RTC endpoint
+- `GET /token` - Create a new Bandwidth RTC endpoint and get JWT
 - `DELETE /api/endpoint/:endpointId` - Delete an endpoint
-- `POST /api/testCall` - Test call placement
+- `POST /simulate-incoming-call` - Place a test call
 
 ### Bandwidth → Backend (Webhooks)
-- `POST /api/callbacks/calls/initiate` - Initial call webhook
-- `POST /api/callbacks/calls/status` - Call status updates
-- `POST /api/callbacks/endpoints/status` - Endpoint status events
+- `POST /callbacks/bandwidth` - BRTC endpoint events and incoming PSTN calls
+- `POST /callbacks/bandwidth/status` - Voice API status events (disconnect)
+- `POST /calls/answer` - Outbound call answer BXML callback
+- `POST /calls/status` - Call status updates
+
+### Utility
+- `GET /health` - Health check
+- `GET /debug/endpoints` - Inspect endpoint pool status
 
 ## Troubleshooting
 
