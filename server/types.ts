@@ -1,10 +1,6 @@
-
-
-
 class Endpoint {
-    endpointToken: string;
+    token: string;
     endpointId: string;
 }
-
 
 export {Endpoint}

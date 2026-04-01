@@ -7,7 +7,7 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwid
 
     const createEndpoint = async () => {
         if (!endpoint) {
-            let endpointData = await fetch("/api/endpoint", { method: "POST" })
+            let endpointData = await fetch("/token")
                 .then(res => res.json())
                 .then(data => data as Endpoint)
                 .catch((err) => {
@@ -19,7 +19,7 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwid
             }
             setEndpoint(endpointData)
             await bandwidthRtcClient.connect({
-                endpointToken: endpointData.endpointToken
+                endpointToken: endpointData.token
             }, {
                 websocketUrl: gatewayUrl
             }).then(() => {
