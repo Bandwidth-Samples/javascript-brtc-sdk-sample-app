@@ -101,7 +101,7 @@ async function getAuthToken(): Promise<string> {
         const authData = await response.json();
         idToken = authData.access_token;
         idTokenExpiration = Date.now() + (authData.expires_in - 10) * 1000;
-        console.log(`OAuth token obtained (expires in ${authData.expires_in}s): ${idToken}`);
+        console.log(`OAuth token obtained (expires in ${authData.expires_in}s)`);
     }
     return idToken;
 }
