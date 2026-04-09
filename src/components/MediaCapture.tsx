@@ -14,12 +14,35 @@ function MediaCapture({bandwidthRtcClient}: {bandwidthRtcClient: BandwidthRtc} )
     const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
     const [fileMediaStream, setFileMediaStream] = useState<MediaStream | null>(null);
     const [microphoneMediaStream, setMicrophoneMediaStream] = useState<MediaStream | null>(null);
+    const [rawMicrophoneStream, setRawMicrophoneStream] = useState<MediaStream | null>(null);
     const [publishedMediaStream, setPublishedMediaStream] = useState<MediaStream | null>(null);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [isCapturingMicrophone, setIsCapturingMicrophone] = useState<boolean>(false);
     const [isPublished, setIsPublished] = useState<boolean>(false);
     const [dataArray] = useState<Uint8Array>(new Uint8Array(512));
+    const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>([]);
+    const [selectedAudioInputDeviceId, setSelectedAudioInputDeviceId] = useState<string>('');
     const fftSize = 512;
+
+    const loadAudioInputDevices = async () => {
+        let devices = await navigator.mediaDevices.enumerateDevices();
+        let audioInputs = devices.filter(d => d.kind === 'audioinput');
+
+        // Browsers hide full device list until mic permission is granted.
+        // Request temporary access so users can pick their device before capture.
+        if (audioInputs.length > 0 && !audioInputs.some(d => d.label)) {
+            try {
+                const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                tempStream.getTracks().forEach(t => t.stop());
+                devices = await navigator.mediaDevices.enumerateDevices();
+                audioInputs = devices.filter(d => d.kind === 'audioinput');
+            } catch {
+                // Permission denied — keep the limited list
+            }
+        }
+
+        setAudioInputDevices(audioInputs);
+    };
 
     useEffect(() => {
         // Initialize Web Audio API
@@ -28,6 +51,12 @@ function MediaCapture({bandwidthRtcClient}: {bandwidthRtcClient: BandwidthRtc} )
         analyserNode.fftSize = fftSize;
         setAudioContext(context);
         setAnalyser(analyserNode);
+
+        loadAudioInputDevices();
+        navigator.mediaDevices.addEventListener('devicechange', loadAudioInputDevices);
+        return () => {
+            navigator.mediaDevices.removeEventListener('devicechange', loadAudioInputDevices);
+        };
     }, [fftSize]);
 
     const drawFFT = () => {
@@ -148,17 +177,64 @@ function MediaCapture({bandwidthRtcClient}: {bandwidthRtcClient: BandwidthRtc} )
         }
         if (!isCapturingMicrophone) {
             audioContext.resume()
-            let constraints: MediaStreamConstraints = {audio: true, video: false};
+            let constraints: MediaStreamConstraints = {
+                audio: selectedAudioInputDeviceId
+                    ? { deviceId: { exact: selectedAudioInputDeviceId } }
+                    : true,
+                video: false
+            };
             let microphoneStream = await navigator.mediaDevices.getUserMedia(constraints);
+            setRawMicrophoneStream(microphoneStream);
+
+            const currentDeviceId = microphoneStream.getAudioTracks()[0]?.getSettings()?.deviceId;
+            if (currentDeviceId && !selectedAudioInputDeviceId) {
+                setSelectedAudioInputDeviceId(currentDeviceId);
+            }
+
             let sourceNode = audioContext.createMediaStreamSource(microphoneStream);
             let mediaStream = await handleMediaPublish(sourceNode)
             setMicrophoneMediaStream(mediaStream)
+
+            // Refresh device list now that mic permission is granted (labels become available)
+            await loadAudioInputDevices();
         }
         setIsCapturingMicrophone(true);
     }
 
+    const handleAudioInputDeviceChange = async (deviceId: string) => {
+        setSelectedAudioInputDeviceId(deviceId);
+        if (!isCapturingMicrophone || !audioContext || !analyser) return;
+
+        const constraints: MediaStreamConstraints = {
+            audio: { deviceId: { exact: deviceId } },
+            video: false
+        };
+        const newMicStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        // Disconnect old source node from the audio graph
+        if (audioSourceNode) {
+            audioSourceNode.disconnect();
+        }
+
+        // Stop old raw microphone tracks
+        if (rawMicrophoneStream) {
+            rawMicrophoneStream.getTracks().forEach(track => track.stop());
+        }
+
+        // Create new source and connect it to the existing analyser → destination pipeline
+        const newSourceNode = audioContext.createMediaStreamSource(newMicStream);
+        newSourceNode.connect(analyser);
+
+        setAudioSourceNode(newSourceNode);
+        setRawMicrophoneStream(newMicStream);
+    }
+
     const releaseMicrophone = async () => {
         await handleMediaUnpublish()
+        if (rawMicrophoneStream) {
+            rawMicrophoneStream.getTracks().forEach(track => track.stop());
+            setRawMicrophoneStream(null);
+        }
         if (microphoneMediaStream) {
             microphoneMediaStream.getTracks().forEach(track => track.stop());
             setMicrophoneMediaStream(null);
@@ -171,6 +247,20 @@ function MediaCapture({bandwidthRtcClient}: {bandwidthRtcClient: BandwidthRtc} )
             <div>
                 <audio ref={audioRef} />
                 <canvas ref={canvasRef} width={400} height={200} style={{ border: "1px solid black" }} />
+                <div>
+                    <select
+                        value={selectedAudioInputDeviceId}
+                        onChange={(e) => handleAudioInputDeviceChange(e.target.value)}
+                        disabled={audioInputDevices.length === 0}
+                    >
+                        {audioInputDevices.length === 0 && <option value="">No devices found</option>}
+                        {audioInputDevices.map(device => (
+                            <option key={device.deviceId} value={device.deviceId}>
+                                {device.label || `Microphone (${device.deviceId.slice(0, 8)})`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
                 <div>
                     <button onClick={captureMicrophone} disabled={isCapturingMicrophone || isPlaying}>Capture Microphone</button>
                     <button onClick={releaseMicrophone} disabled={!isCapturingMicrophone || isPlaying}>Release Microphone</button>
