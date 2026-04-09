@@ -4,6 +4,7 @@ import {Endpoint} from "../../server/types"
 
 function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwidthRtcClient: BandwidthRtc, resetClient: () => void, gatewayUrl?: string }) {
     const [endpoint, setEndpoint] = useState<Endpoint | null>(null);
+    const [banner, setBanner] = useState<{ message: string; isError: boolean } | null>(null);
 
     const createEndpoint = async () => {
         if (!endpoint) {
@@ -30,6 +31,24 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwid
         }
     }
 
+    const deleteAllEndpoints = async () => {
+        try {
+            const res = await fetch('/api/endpoints', { method: 'DELETE' });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({ error: `Request failed with status ${res.status}` }));
+                setBanner({ message: data.error || `Request failed with status ${res.status}`, isError: true });
+                return;
+            }
+            bandwidthRtcClient.disconnect();
+            resetClient();
+            setEndpoint(null);
+            setBanner({ message: 'Endpoints all deleted', isError: false });
+            setTimeout(() => setBanner(prev => prev && !prev.isError ? null : prev), 4000);
+        } catch (err: any) {
+            setBanner({ message: err.message || 'Failed to delete endpoints', isError: true });
+        }
+    }
+
     const deleteEndpoint = async () => {
         if (endpoint) {
             bandwidthRtcClient.disconnect();
@@ -52,8 +71,20 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwid
     return (
         <div>
             <h2>Bandwidth RTC Endpoint</h2>
+            {banner && !banner.isError && (
+                <div style={{ padding: '8px 12px', marginBottom: 8, background: '#d4edda', color: '#155724', borderRadius: 4 }}>
+                    {banner.message}
+                </div>
+            )}
+            {banner && banner.isError && (
+                <div style={{ padding: '8px 12px', marginBottom: 8, background: '#f8d7da', color: '#721c24', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{banner.message}</span>
+                    <button onClick={() => setBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', color: '#721c24' }}>✕</button>
+                </div>
+            )}
             <button onClick={createEndpoint}>Create Endpoint</button>
-            <button onClick={deleteEndpoint} disabled={!endpoint} >Disconnect & Delete Endpoint</button>
+            <button onClick={deleteEndpoint} disabled={!endpoint}>Disconnect & Delete Endpoint</button>
+            <button onClick={deleteAllEndpoints}>Delete All Endpoints</button>
             {endpoint !== null && (
                 <p>{endpoint.endpointId}</p>
             )}
