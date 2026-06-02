@@ -9,16 +9,21 @@ function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClien
         throw new Error("setInCall is required");
     }
 
-    // Register inbound media handler
+    // Fires twice: first on WS notification (callId present, no mediaStream) for
+    // call-arrival UI; second on WebRTC ontrack (mediaStream present) for audio.
     bandwidthRtcClient.onStreamAvailable(async (s) => {
         console.log("Stream available:", s)
         setInCall(true);
-        await handleMediaSubscribe(s)
+        if (s.mediaStream) {
+            await handleMediaSubscribe(s)
+        }
     });
     bandwidthRtcClient.onStreamUnavailable(async (s) => {
         console.log("Stream unavailable:", s)
         setInCall(false);
-        await handleMediaUnsubscribe(s)
+        if (s.mediaStream) {
+            await handleMediaUnsubscribe(s)
+        }
     })
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
