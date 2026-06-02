@@ -33,6 +33,9 @@ function MediaPlayer({inboundStream}: {inboundStream: MediaStream | null}) {
             audioContext.resume();
             setDirectMediaStream(destination.stream);
         } else if (!inboundStream && isSubscribed) {
+            if (audioRef.current) {
+                audioRef.current.srcObject = null;
+            }
             setIsSubscribed(false);
             setAudioSourceNode(null);
             setDirectMediaStream(null);
