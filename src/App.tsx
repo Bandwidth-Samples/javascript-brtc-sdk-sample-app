@@ -13,6 +13,8 @@ function App() {
     const [brtcClientReady, setBrtcClientReady] = useState<boolean>(false);
     const [readyMetadata, setReadyMetadata] = useState<ReadyMetadata | null>(null);
     const [inCall, setInCall] = useState(false);
+    const [incomingCallId, setIncomingCallId] = useState<string | null>(null);
+    const [inboundStream, setInboundStream] = useState<MediaStream | null>(null);
 
     const prepBrtcClient= async (reset: boolean) => {
         console.log("Prepping Bandwidth RTC Client")
@@ -38,11 +40,42 @@ function App() {
         prepBrtcClient(false)
     }, []);
 
+    useEffect(() => {
+        if (!brtcClient) return;
+        brtcClient.onStreamAvailable((s) => {
+            console.log("Stream available:", s);
+            if (s.callId && !s.mediaStream) {
+                setIncomingCallId(s.callId);
+            } else if (s.mediaStream) {
+                setInCall(true);
+                setInboundStream(s.mediaStream);
+            }
+        });
+        brtcClient.onStreamUnavailable((s) => {
+            console.log("Stream unavailable:", s);
+            setInCall(false);
+            setIncomingCallId(null);
+            setInboundStream(null);
+        });
+    }, [brtcClient]);
+
+    const handleAccept = async () => {
+        if (!brtcClient) return;
+        await brtcClient.acceptStream(incomingCallId ?? undefined);
+        setInCall(true);
+        setIncomingCallId(null);
+    };
+
+    const handleDecline = async () => {
+        if (!brtcClient) return;
+        await brtcClient.declineStream(incomingCallId ?? undefined);
+        setIncomingCallId(null);
+    };
+
     const resetClient = async () => {
         await prepBrtcClient(true)
     }
 
-  // Fetch the WebSocket URL from env
   const gatewayUrl = process.env.REACT_APP_WSS_URL;
 
   return (
@@ -53,12 +86,42 @@ function App() {
                 <EndpointHandler bandwidthRtcClient={brtcClient} resetClient={resetClient} gatewayUrl={gatewayUrl} />
                 <hr />
                 {brtcClientReady}
+                {incomingCallId && (
+                    <div style={{
+                        background: '#e3f2fd',
+                        border: '2px solid #1976d2',
+                        borderRadius: 8,
+                        padding: '12px 24px',
+                        margin: '8px auto',
+                        maxWidth: 480,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 16,
+                    }}>
+                        <span style={{ fontWeight: 600 }}>Incoming call</span>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                onClick={handleAccept}
+                                style={{ background: '#4caf50', color: 'white', border: 'none', padding: '8px 20px', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Accept
+                            </button>
+                            <button
+                                onClick={handleDecline}
+                                style={{ background: '#f44336', color: 'white', border: 'none', padding: '8px 20px', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Decline
+                            </button>
+                        </div>
+                    </div>
+                )}
                 {readyMetadata && (
                     <>
                     <h2>Bandwidth RTC Agent Sample</h2>
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                         <MediaCapture bandwidthRtcClient={brtcClient} />
-                        <MediaPlayer bandwidthRtcClient={brtcClient} inCall={inCall} setInCall={setInCall} />
+                        <MediaPlayer inboundStream={inboundStream} />
                     </div>
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                         <CallController bandwidthRtcClient={brtcClient} readyMetadata={readyMetadata} inCall={inCall} setInCall={setInCall} />
