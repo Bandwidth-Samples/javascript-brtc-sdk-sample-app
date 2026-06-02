@@ -69,7 +69,9 @@ function App() {
         brtcClient.onStreamUnavailable((s) => {
             console.log("Stream unavailable:", s);
             callExpectedRef.current = false;
-            subscribeStreamRef.current = null;
+            // subscribeStreamRef is intentionally kept: the subscribe peer's
+            // MediaStream is permanent for the lifetime of the WS connection;
+            // ontrack only fires once so we need it for consecutive calls.
             setInCall(false);
             setIncomingCallId(null);
             setInboundStream(null);
