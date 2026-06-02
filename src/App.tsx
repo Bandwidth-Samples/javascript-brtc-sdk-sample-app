@@ -15,9 +15,11 @@ function App() {
     const [inCall, setInCall] = useState(false);
     const [incomingCallId, setIncomingCallId] = useState<string | null>(null);
     const [inboundStream, setInboundStream] = useState<MediaStream | null>(null);
-    // true once the WS streamAvailable notification arrives; gates the WebRTC
-    // ontrack path so idle subscribe-peer tracks don't trigger "in call" state
+    // true once the WS streamAvailable notification arrives; gates in-call state
     const callExpectedRef = useRef(false);
+    // holds the subscribe-peer MediaStream from WebRTC ontrack, which fires once
+    // at connection time before any call arrives
+    const subscribeStreamRef = useRef<MediaStream | null>(null);
 
     const prepBrtcClient= async (reset: boolean) => {
         console.log("Prepping Bandwidth RTC Client")
@@ -50,14 +52,23 @@ function App() {
             if (s.callId && !s.mediaStream) {
                 callExpectedRef.current = true;
                 setIncomingCallId(s.callId);
-            } else if (s.mediaStream && callExpectedRef.current) {
-                setInCall(true);
-                setInboundStream(s.mediaStream);
+                // ontrack may have already fired before this notification arrived
+                if (subscribeStreamRef.current) {
+                    setInCall(true);
+                    setInboundStream(subscribeStreamRef.current);
+                }
+            } else if (s.mediaStream) {
+                subscribeStreamRef.current = s.mediaStream;
+                if (callExpectedRef.current) {
+                    setInCall(true);
+                    setInboundStream(s.mediaStream);
+                }
             }
         });
         brtcClient.onStreamUnavailable((s) => {
             console.log("Stream unavailable:", s);
             callExpectedRef.current = false;
+            subscribeStreamRef.current = null;
             setInCall(false);
             setIncomingCallId(null);
             setInboundStream(null);
@@ -69,6 +80,9 @@ function App() {
         await brtcClient.acceptStream(incomingCallId ?? undefined);
         setInCall(true);
         setIncomingCallId(null);
+        if (subscribeStreamRef.current) {
+            setInboundStream(subscribeStreamRef.current);
+        }
     };
 
     const handleDecline = async () => {
