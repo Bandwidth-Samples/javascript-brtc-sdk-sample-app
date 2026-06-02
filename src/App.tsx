@@ -52,11 +52,6 @@ function App() {
             if (s.callId && !s.mediaStream) {
                 callExpectedRef.current = true;
                 setIncomingCallId(s.callId);
-                // ontrack may have already fired before this notification arrived
-                if (subscribeStreamRef.current) {
-                    setInCall(true);
-                    setInboundStream(subscribeStreamRef.current);
-                }
             } else if (s.mediaStream) {
                 subscribeStreamRef.current = s.mediaStream;
                 if (callExpectedRef.current) {

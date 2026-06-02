@@ -100,10 +100,10 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
     }
     const handleHangUp = async () => {
         setCallStatus('Hanging Up...');
-        // Ensure E.164 format: clean digits and add '+'
         const e164Number = '+' + destNumber.replace(/[^\d]/g, '');
-        let result = await bandwidthRtcClient.hangupConnection(e164Number, EndpointType.PHONE_NUMBER)
-        setCallStatus(result.result)
+        await bandwidthRtcClient.hangupConnection(e164Number, EndpointType.PHONE_NUMBER);
+        setInCall(false);
+        setCallStatus('Call ended');
     }
 
     const handleDigitClick = (value: string) => {
