@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import './css/App.scss';
 import Navbar from "./components/Navbar";
 import EndpointHandler from "./components/EndpointHandler";
@@ -15,6 +15,9 @@ function App() {
     const [inCall, setInCall] = useState(false);
     const [incomingCallId, setIncomingCallId] = useState<string | null>(null);
     const [inboundStream, setInboundStream] = useState<MediaStream | null>(null);
+    // true once the WS streamAvailable notification arrives; gates the WebRTC
+    // ontrack path so idle subscribe-peer tracks don't trigger "in call" state
+    const callExpectedRef = useRef(false);
 
     const prepBrtcClient= async (reset: boolean) => {
         console.log("Prepping Bandwidth RTC Client")
@@ -45,14 +48,16 @@ function App() {
         brtcClient.onStreamAvailable((s) => {
             console.log("Stream available:", s);
             if (s.callId && !s.mediaStream) {
+                callExpectedRef.current = true;
                 setIncomingCallId(s.callId);
-            } else if (s.mediaStream) {
+            } else if (s.mediaStream && callExpectedRef.current) {
                 setInCall(true);
                 setInboundStream(s.mediaStream);
             }
         });
         brtcClient.onStreamUnavailable((s) => {
             console.log("Stream unavailable:", s);
+            callExpectedRef.current = false;
             setInCall(false);
             setIncomingCallId(null);
             setInboundStream(null);
