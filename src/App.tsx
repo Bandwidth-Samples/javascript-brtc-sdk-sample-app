@@ -46,6 +46,12 @@ function App() {
     }, []);
 
     useEffect(() => {
+        if (!inCall) {
+            setInboundStream(null);
+        }
+    }, [inCall]);
+
+    useEffect(() => {
         if (!brtcClient) return;
         brtcClient.onStreamAvailable((s) => {
             console.log("Stream available:", s);
