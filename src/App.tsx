@@ -15,6 +15,9 @@ function App() {
     const [inCall, setInCall] = useState(false);
     const [incomingCallId, setIncomingCallId] = useState<string | null>(null);
     const [inboundStream, setInboundStream] = useState<MediaStream | null>(null);
+    const [autoAccept, setAutoAccept] = useState(true);
+    const autoAcceptRef = useRef(autoAccept);
+    useEffect(() => { autoAcceptRef.current = autoAccept; }, [autoAccept]);
     // true once the WS streamAvailable notification arrives; gates in-call state
     const callExpectedRef = useRef(false);
     // holds the subscribe-peer MediaStream from WebRTC ontrack, which fires once
@@ -57,7 +60,17 @@ function App() {
             console.log("Stream available:", s);
             if (s.callId && !s.mediaStream) {
                 callExpectedRef.current = true;
-                setIncomingCallId(s.callId);
+                if (s.autoAccepted === true) {
+                    // New SDK: server explicitly auto-accepted — inCall transitions when the MediaStream arrives below.
+                } else if (autoAcceptRef.current) {
+                    brtcClient.acceptStream(s.callId);
+                    setInCall(true);
+                    if (subscribeStreamRef.current) {
+                        setInboundStream(subscribeStreamRef.current);
+                    }
+                } else {
+                    setIncomingCallId(s.callId);
+                }
             } else if (s.mediaStream) {
                 subscribeStreamRef.current = s.mediaStream;
                 if (callExpectedRef.current) {
@@ -105,7 +118,7 @@ function App() {
         <Navbar />
         {brtcClient && (
             <>
-                <EndpointHandler bandwidthRtcClient={brtcClient} resetClient={resetClient} gatewayUrl={gatewayUrl} />
+                <EndpointHandler bandwidthRtcClient={brtcClient} resetClient={resetClient} gatewayUrl={gatewayUrl} autoAccept={autoAccept} setAutoAccept={setAutoAccept} />
                 <hr />
                 {brtcClientReady}
                 {incomingCallId && (

@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import BandwidthRtc from "bandwidth-rtc";
 import {Endpoint} from "../../server/types"
 
-function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwidthRtcClient: BandwidthRtc, resetClient: () => void, gatewayUrl?: string }) {
+function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl, autoAccept, setAutoAccept}: {bandwidthRtcClient: BandwidthRtc, resetClient: () => void, gatewayUrl?: string, autoAccept: boolean, setAutoAccept: (v: boolean) => void }) {
     const [endpoint, setEndpoint] = useState<Endpoint | null>(null);
     const [banner, setBanner] = useState<{ message: string; isError: boolean } | null>(null);
 
@@ -22,7 +22,8 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwid
             await bandwidthRtcClient.connect({
                 endpointToken: endpointData.token
             }, {
-                websocketUrl: gatewayUrl
+                websocketUrl: gatewayUrl,
+                autoAccept
             }).then(() => {
                 console.log("WebRTC Client Connected");
             }).catch((error) => {
@@ -82,6 +83,16 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwid
                     <button onClick={() => setBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', color: '#721c24' }}>✕</button>
                 </div>
             )}
+            <label style={{ marginRight: 16 }}>
+                <input
+                    type="checkbox"
+                    checked={autoAccept}
+                    onChange={e => setAutoAccept(e.target.checked)}
+                    disabled={!!endpoint}
+                    style={{ marginRight: 4 }}
+                />
+                Auto-accept incoming audio
+            </label>
             <button onClick={createEndpoint}>Create Endpoint</button>
             <button onClick={deleteEndpoint} disabled={!endpoint}>Disconnect & Delete Endpoint</button>
             <button onClick={deleteAllEndpoints}>Delete All Endpoints</button>
