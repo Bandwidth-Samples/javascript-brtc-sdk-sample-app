@@ -113,6 +113,48 @@ function MediaPlayer({inboundStream}: {inboundStream: MediaStream | null}) {
         requestAnimationFrame(drawFFT);
     };
 
+    const handleMediaSubscribe = async (rtcStream: RtcStream): Promise<MediaStream> => {
+        if (!audioContext || !analyser) {
+            throw new Error("Audio context or analyser is not initialized");
+        }
+        if (!audioRef.current) {
+            throw new Error("Audio element is not initialized");
+        }
+        if (!rtcStream.mediaStream) {
+            throw new Error("RTC stream has no media stream");
+        }
+        if (!isSubscribed) {
+            let sourceNode = audioContext.createMediaStreamSource(rtcStream.mediaStream);
+            let destination = audioContext.createMediaStreamDestination();
+
+            sourceNode.connect(analyser);
+            analyser.connect(destination);
+            let stream = destination.stream;
+            drawFFT();
+            audioRef.current.srcObject = rtcStream.mediaStream;
+            setAudioSourceNode(sourceNode);
+            setIsSubscribed(true);
+            await audioContext.resume()
+            setDirectMediaStream(stream)
+            return stream;
+        } else {
+            throw new Error("Already subscribed to media");
+        }
+    }
+
+    const handleMediaUnsubscribe = async (s: RtcStream) => {
+        console.log("Unsubscribing from stream:", s.mediaStream?.id);
+        // Stop playing if we are
+        if (isPlaying) {
+            await handlePlay()
+        }
+        if (isSubscribed) {
+            setIsSubscribed(false);
+            setAudioSourceNode(null);
+            setDirectMediaStream(null);
+        }
+    }
+
     const handlePlay = async () => {
         const sourceNode = audioSourceNode;
         if (!sourceNode || !audioContext || !directMediaStream) return;
