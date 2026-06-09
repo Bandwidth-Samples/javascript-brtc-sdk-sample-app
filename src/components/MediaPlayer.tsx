@@ -1,4 +1,34 @@
 import React, {useEffect, useRef, useState} from "react";
+import BandwidthRtc, {RtcStream} from "bandwidth-rtc";
+
+function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClient: BandwidthRtc, inCall: boolean, setInCall: (inCall: boolean) => void} ) {
+    if (!bandwidthRtcClient) {
+        throw new Error("webrtcClient is required");
+    }
+    if (!setInCall) {
+        throw new Error("setInCall is required");
+    }
+
+    useEffect(() => {
+        bandwidthRtcClient.onStreamAvailable(async (s) => {
+            console.log("Stream available:", s);
+            if (!s.mediaStream) {
+                console.warn("onStreamAvailable fired but rtcStream.mediaStream is null — skipping subscribe");
+                return;
+            }
+            try {
+                await handleMediaSubscribe(s);
+                setInCall(true);
+            } catch (err) {
+                console.error("Failed to subscribe to media stream:", err);
+            }
+        });
+        bandwidthRtcClient.onStreamUnavailable(async (s) => {
+            console.log("Stream unavailable:", s);
+            setInCall(false);
+            await handleMediaUnsubscribe(s);
+        });
+    }, [bandwidthRtcClient]);
 
 function MediaPlayer({inboundStream}: {inboundStream: MediaStream | null}) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
