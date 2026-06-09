@@ -99,6 +99,9 @@ function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClien
         if (!audioRef.current) {
             throw new Error("Audio element is not initialized");
         }
+        if (!rtcStream.mediaStream) {
+            throw new Error("RTC stream has no media stream");
+        }
         if (!isSubscribed) {
             let sourceNode = audioContext.createMediaStreamSource(rtcStream.mediaStream);
             let destination = audioContext.createMediaStreamDestination();
@@ -119,7 +122,7 @@ function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClien
     }
 
     const handleMediaUnsubscribe = async (s: RtcStream) => {
-        console.log("Unsubscribing from stream:", s.mediaStream.id);
+        console.log("Unsubscribing from stream:", s.mediaStream?.id);
         // Stop playing if we are
         if (isPlaying) {
             await handlePlay()
