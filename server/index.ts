@@ -184,7 +184,7 @@ function processInboundCall(callId: string): string {
         return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <SpeakSentence voice="julie">Connecting</SpeakSentence>
-    <Connect>
+    <Connect eventCallbackUrl="${CALLBACK_BASE_URL}/connectstatus">
         <Endpoint>${endpointId}</Endpoint>
     </Connect>
 </Response>`;
@@ -192,7 +192,7 @@ function processInboundCall(callId: string): string {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <SpeakSentence voice="julie">Connecting</SpeakSentence>
-    <Connect>
+    <Connect eventCallbackUrl="${CALLBACK_BASE_URL}/connectstatus">
         <Endpoint>${requestingEndpointId}</Endpoint>
     </Connect>
 </Response>`;
