@@ -1,34 +1,5 @@
 import React, {useEffect, useRef, useState} from "react";
-import BandwidthRtc, {RtcStream} from "bandwidth-rtc";
 
-function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClient: BandwidthRtc, inCall: boolean, setInCall: (inCall: boolean) => void} ) {
-    if (!bandwidthRtcClient) {
-        throw new Error("webrtcClient is required");
-    }
-    if (!setInCall) {
-        throw new Error("setInCall is required");
-    }
-
-    useEffect(() => {
-        bandwidthRtcClient.onStreamAvailable(async (s) => {
-            console.log("Stream available:", s);
-            if (!s.mediaStream) {
-                console.warn("onStreamAvailable fired but rtcStream.mediaStream is null — skipping subscribe");
-                return;
-            }
-            try {
-                await handleMediaSubscribe(s);
-                setInCall(true);
-            } catch (err) {
-                console.error("Failed to subscribe to media stream:", err);
-            }
-        });
-        bandwidthRtcClient.onStreamUnavailable(async (s) => {
-            console.log("Stream unavailable:", s);
-            setInCall(false);
-            await handleMediaUnsubscribe(s);
-        });
-    }, [bandwidthRtcClient]);
 
 function MediaPlayer({inboundStream}: {inboundStream: MediaStream | null}) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -78,7 +49,7 @@ function MediaPlayer({inboundStream}: {inboundStream: MediaStream | null}) {
         let lineColor = "rgb(0 0 0)";
         let drawFft = false;
         for (let i = 0; i < dataArray.length; i++) {
-            if (dataArray[i] != 128) {
+            if (dataArray[i] !== 128) {
                 drawFft = true;
                 break;
             }
@@ -113,51 +84,10 @@ function MediaPlayer({inboundStream}: {inboundStream: MediaStream | null}) {
         requestAnimationFrame(drawFFT);
     };
 
-    const handleMediaSubscribe = async (rtcStream: RtcStream): Promise<MediaStream> => {
-        if (!audioContext || !analyser) {
-            throw new Error("Audio context or analyser is not initialized");
-        }
-        if (!audioRef.current) {
-            throw new Error("Audio element is not initialized");
-        }
-        if (!rtcStream.mediaStream) {
-            throw new Error("RTC stream has no media stream");
-        }
-        if (!isSubscribed) {
-            let sourceNode = audioContext.createMediaStreamSource(rtcStream.mediaStream);
-            let destination = audioContext.createMediaStreamDestination();
-
-            sourceNode.connect(analyser);
-            analyser.connect(destination);
-            let stream = destination.stream;
-            drawFFT();
-            audioRef.current.srcObject = rtcStream.mediaStream;
-            setAudioSourceNode(sourceNode);
-            setIsSubscribed(true);
-            await audioContext.resume()
-            setDirectMediaStream(stream)
-            return stream;
-        } else {
-            throw new Error("Already subscribed to media");
-        }
-    }
-
-    const handleMediaUnsubscribe = async (s: RtcStream) => {
-        console.log("Unsubscribing from stream:", s.mediaStream?.id);
-        // Stop playing if we are
-        if (isPlaying) {
-            await handlePlay()
-        }
-        if (isSubscribed) {
-            setIsSubscribed(false);
-            setAudioSourceNode(null);
-            setDirectMediaStream(null);
-        }
-    }
-
     const handlePlay = async () => {
         const sourceNode = audioSourceNode;
         if (!sourceNode || !audioContext || !directMediaStream) return;
+        await audioContext.resume();
         if (!localOutputAudioNode) {
             setLocalOutputAudioNode(sourceNode.connect(audioContext.destination));
             setIsPlaying(true);

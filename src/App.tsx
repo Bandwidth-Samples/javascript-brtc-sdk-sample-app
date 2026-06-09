@@ -61,7 +61,10 @@ function App() {
             if (s.callId && !s.mediaStream) {
                 callExpectedRef.current = true;
                 if (s.autoAccepted === true) {
-                    // New SDK: server explicitly auto-accepted — inCall transitions when the MediaStream arrives below.
+                    setInCall(true);
+                    if (subscribeStreamRef.current) {
+                        setInboundStream(subscribeStreamRef.current);
+                    }
                 } else if (autoAcceptRef.current) {
                     brtcClient.acceptStream(s.callId);
                     setInCall(true);
