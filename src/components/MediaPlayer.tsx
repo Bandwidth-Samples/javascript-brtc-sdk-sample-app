@@ -84,6 +84,7 @@ function MediaPlayer({inboundStream}: {inboundStream: MediaStream | null}) {
         requestAnimationFrame(drawFFT);
     };
 
+
     const handlePlay = async () => {
         const sourceNode = audioSourceNode;
         if (!sourceNode || !audioContext || !directMediaStream) return;
