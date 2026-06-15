@@ -92,7 +92,7 @@ function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClien
         requestAnimationFrame(drawFFT);
     };
 
-    const handleMediaSubscribe = async (rtcStream: RtcStream): Promise<MediaStream> => {
+    const handleMediaSubscribe = async (rtcStream: RtcStream): Promise<MediaStream | undefined> => {
         if (!audioContext || !analyser) {
             throw new Error("Audio context or analyser is not initialized");
         }
@@ -100,7 +100,7 @@ function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClien
             throw new Error("Audio element is not initialized");
         }
         if (!rtcStream.mediaStream) {
-            throw new Error("RTC stream has no media stream");
+            return;
         }
         if (!isSubscribed) {
             let sourceNode = audioContext.createMediaStreamSource(rtcStream.mediaStream);
