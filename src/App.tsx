@@ -23,6 +23,7 @@ function App() {
     // holds the subscribe-peer MediaStream from WebRTC ontrack, which fires once
     // at connection time before any call arrives
     const subscribeStreamRef = useRef<MediaStream | null>(null);
+    const [endpointId, setEndpointId] = useState<string | null>(null);
 
     const prepBrtcClient= async (reset: boolean) => {
         console.log("Prepping Bandwidth RTC Client")
@@ -121,7 +122,7 @@ function App() {
         <Navbar />
         {brtcClient && (
             <>
-                <EndpointHandler bandwidthRtcClient={brtcClient} resetClient={resetClient} gatewayUrl={gatewayUrl} autoAccept={autoAccept} setAutoAccept={setAutoAccept} />
+                <EndpointHandler bandwidthRtcClient={brtcClient} resetClient={resetClient} gatewayUrl={gatewayUrl} autoAccept={autoAccept} setAutoAccept={setAutoAccept} onEndpointChange={setEndpointId}  />
                 <hr />
                 {brtcClientReady}
                 {incomingCallId && (
@@ -162,7 +163,7 @@ function App() {
                         <MediaPlayer inboundStream={inboundStream} />
                     </div>
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                        <CallController bandwidthRtcClient={brtcClient} readyMetadata={readyMetadata} inCall={inCall} setInCall={setInCall} />
+                        <CallController bandwidthRtcClient={brtcClient} readyMetadata={readyMetadata} inCall={inCall} setInCall={setInCall} endpointId={endpointId} />
                     </div>
                     </>
                 )}

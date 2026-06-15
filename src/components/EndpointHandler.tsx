@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import BandwidthRtc from "bandwidth-rtc";
 import {Endpoint} from "../../server/types"
 
-function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl, autoAccept, setAutoAccept}: {bandwidthRtcClient: BandwidthRtc, resetClient: () => void, gatewayUrl?: string, autoAccept: boolean, setAutoAccept: (v: boolean) => void }) {
+function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl, onEndpointChange, autoAccept, setAutoAccept}: {bandwidthRtcClient: BandwidthRtc, resetClient: () => void, gatewayUrl?: string, onEndpointChange?: (endpointId: string | null) => void, autoAccept?: boolean, setAutoAccept?: (v: boolean) => void }) {
     const [endpoint, setEndpoint] = useState<Endpoint | null>(null);
     const [banner, setBanner] = useState<{ message: string; isError: boolean } | null>(null);
 
@@ -19,6 +19,7 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl, autoAccep
                 throw new Error("Failed to create endpoint")
             }
             setEndpoint(endpointData)
+            onEndpointChange?.(endpointData.endpointId)
             await bandwidthRtcClient.connect({
                 endpointToken: endpointData.token
             }, {
@@ -43,6 +44,7 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl, autoAccep
             bandwidthRtcClient.disconnect();
             resetClient();
             setEndpoint(null);
+            onEndpointChange?.(null);
             setBanner({ message: 'Endpoints all deleted', isError: false });
             setTimeout(() => setBanner(prev => prev && !prev.isError ? null : prev), 4000);
         } catch (err: any) {
@@ -54,13 +56,8 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl, autoAccep
         if (endpoint) {
             bandwidthRtcClient.disconnect();
             resetClient(); // Reset for now until reconnection logic is fixed (init rebinding in bandwidthRtcClient.connect(...))
-            let endpointData = await fetch(`/api/endpoint/${endpoint.endpointId}`, { method: "DELETE" })
-                .then(res => res.json())
-                .then(data => data as Endpoint)
-                .catch((err) => {
-                    console.error(err);
-                    return null;
-                }) as Endpoint | null;
+            onEndpointChange?.(null);
+            await fetch(`/api/endpoint/${endpoint.endpointId}`, { method: "DELETE" }).catch(console.error);
             setEndpoint(null)
         }
     }
@@ -87,7 +84,7 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl, autoAccep
                 <input
                     type="checkbox"
                     checked={autoAccept}
-                    onChange={e => setAutoAccept(e.target.checked)}
+                    onChange={e => setAutoAccept?.(e.target.checked)}
                     disabled={!!endpoint}
                     style={{ marginRight: 4 }}
                 />

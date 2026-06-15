@@ -70,7 +70,7 @@ function isDestinationValid(destination: string): boolean {
     return true
 }
 
-function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: {bandwidthRtcClient: BandwidthRtc, readyMetadata: ReadyMetadata, inCall: boolean, setInCall: (inCall: boolean) => void} ) {
+function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, endpointId}: {bandwidthRtcClient: BandwidthRtc, readyMetadata: ReadyMetadata, inCall: boolean, setInCall: (inCall: boolean) => void, endpointId?: string | null} ) {
     if (!bandwidthRtcClient) {
         throw new Error("webrtcClient is required");
     }
@@ -105,6 +105,11 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
         setInCall(false);
         setCallStatus('Call ended');
     }
+
+    const handleBxmlHangup = async () => {
+        if (!endpointId) return;
+        await fetch(`/api/endpoint/${endpointId}/bxml-hangup`, { method: 'POST' });
+    };
 
     const handleDigitClick = (value: string) => {
         inCall ? bandwidthRtcClient.sendDtmf(value) : setDestNumber((destNumber) => destNumber.concat(value));
@@ -191,6 +196,13 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
             <div className='call-start-end'>
                 {!inCall ? <CallControlButton {...startCallButtonProps} /> : <CallControlButton {...endCallButtonProps} />}
             </div>
+            {inCall && (
+                <div style={{ marginTop: '8px' }}>
+                    <button onClick={handleBxmlHangup} disabled={!endpointId}>
+                        BXML Hangup
+                    </button>
+                </div>
+            )}
 
         </div>
     );

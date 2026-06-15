@@ -438,6 +438,42 @@ app.post('/api/endpoint/:endpointId/hangup', async (req: Request, res: Response)
     }
 });
 
+// GET /bxml/hangup - Returns BXML that hangs up the call
+app.get('/bxml/hangup', (req: Request, res: Response) => {
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Hangup/>
+</Response>`);
+});
+
+// POST /api/endpoint/:endpointId/bxml-hangup - Redirect active PSTN call to BXML Hangup
+app.post('/api/endpoint/:endpointId/bxml-hangup', async (req: Request, res: Response) => {
+    const endpointId = req.params.endpointId;
+    const callStatus = endpointCallStatusMap.get(endpointId);
+    if (!callStatus) {
+        return res.status(404).json({ error: 'No active call for this endpoint' });
+    }
+
+    try {
+        const token = await getAuthToken();
+        const configuration = new Configuration({ accessToken: token });
+        if (VOICE_URL !== PROD_VOICE_URL) {
+            configuration.basePath = VOICE_URL;
+        }
+
+        const callsApi = new CallsApi(configuration);
+        await callsApi.updateCall(ACCOUNT_ID, callStatus.callId, {
+            state: 'active',
+            redirectUrl: `${CALLBACK_BASE_URL}/bxml/hangup`,
+        });
+        console.log(`Redirected call ${callStatus.callId} to BXML hangup for endpoint ${endpointId}`);
+        res.sendStatus(200);
+    } catch (error: any) {
+        console.error(`Error sending BXML hangup for endpoint ${endpointId}:`, error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // DELETE /api/endpoints - Delete all endpoints on the account
 app.delete('/api/endpoints', async (req: Request, res: Response) => {
     try {
@@ -497,7 +533,9 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`  GET    /token                              - Create endpoint and get JWT`);
     console.log(`  DELETE /api/endpoint/:endpointId           - Delete endpoint`);
     console.log(`  GET    /api/endpoint/:endpointId/call-status - Get PSTN call status`);
-    console.log(`  POST   /api/endpoint/:endpointId/hangup   - Hang up PSTN leg`);
+    console.log(`  POST   /api/endpoint/:endpointId/hangup      - Hang up PSTN leg (Voice API)`);
+    console.log(`  POST   /api/endpoint/:endpointId/bxml-hangup - Hang up via BXML redirect`);
+    console.log(`  GET    /bxml/hangup                          - BXML Hangup verb`);
     console.log(`  POST   /callbacks/bandwidth                - BRTC events + incoming PSTN calls`);
     console.log(`  POST   /callbacks/bandwidth/status         - Voice API status (disconnect)`);
     console.log(`  POST   /calls/answer                       - Outbound call answer BXML callback`);
