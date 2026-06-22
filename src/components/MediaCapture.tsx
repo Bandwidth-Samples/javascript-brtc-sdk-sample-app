@@ -90,6 +90,7 @@ function MediaCapture({bandwidthRtcClient}: {bandwidthRtcClient: BandwidthRtc} )
         }
         ctx.lineTo(ctx.canvas.width, ctx.canvas.height / 2);
         ctx.stroke();
+
         requestAnimationFrame(drawFFT);
     };
 
