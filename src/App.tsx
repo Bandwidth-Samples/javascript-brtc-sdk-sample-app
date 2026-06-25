@@ -59,7 +59,20 @@ function App() {
         if (!brtcClient) return;
         brtcClient.onStreamAvailable((s) => {
             console.log("Stream available:", s);
-            if (s.callId && !s.mediaStream) {
+            if (s.callId && s.mediaStream) {
+                // New SDK: combined event — callId and mediaStream arrive together.
+                if (s.autoAccepted === true || autoAcceptRef.current) {
+                    if (s.autoAccepted !== true) {
+                        brtcClient.acceptStream(s.callId);
+                    }
+                    setInCall(true);
+                    setInboundStream(s.mediaStream);
+                } else {
+                    subscribeStreamRef.current = s.mediaStream;
+                    setIncomingCallId(s.callId);
+                }
+            } else if (s.callId && !s.mediaStream) {
+                // Old SDK two-phase: WS notification arrives before ontrack.
                 callExpectedRef.current = true;
                 if (s.autoAccepted === true) {
                     setInCall(true);
@@ -76,6 +89,7 @@ function App() {
                     setIncomingCallId(s.callId);
                 }
             } else if (s.mediaStream) {
+                // Old SDK: ontrack fires with stream (no callId).
                 subscribeStreamRef.current = s.mediaStream;
                 if (callExpectedRef.current) {
                     setInCall(true);
