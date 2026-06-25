@@ -82,6 +82,18 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, e
     const [callStatus, setCallStatus] = useState('Select Connection Target');
     const [endpointTarget, setEndpointTarget] = useState('');
     const [endpointType, setEndpointType] = useState<EndpointType>(EndpointType.PHONE_NUMBER);
+    const [dtmfDuration, setDtmfDuration] = useState<number>(300);
+    const [dtmfSequence, setDtmfSequence] = useState<string>('');
+
+    const handleSendDtmfSequence = () => {
+        console.log(`Sending DTMF sequence: ${dtmfSequence}, duration: ${dtmfDuration}ms`);
+        try {
+            bandwidthRtcClient.sendDtmf(dtmfSequence, undefined, dtmfDuration);
+        } catch (err) {
+            console.error('sendDtmf sequence failed:', err);
+        }
+        setDtmfSequence('');
+    };
 
 
     const handleBackspaceClick = () => {
@@ -112,7 +124,16 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, e
     };
 
     const handleDigitClick = (value: string) => {
-        inCall ? bandwidthRtcClient.sendDtmf(value) : setDestNumber((destNumber) => destNumber.concat(value));
+        if (inCall) {
+            console.log(`Sending DTMF: ${value}, duration: ${dtmfDuration}ms`);
+            try {
+                bandwidthRtcClient.sendDtmf(value, undefined, dtmfDuration);
+            } catch (err) {
+                console.error('sendDtmf failed:', err);
+            }
+        } else {
+            setDestNumber((destNumber) => destNumber.concat(value));
+        }
     }
     const handlePhoneNumber = (event: React.ChangeEvent<HTMLInputElement>) => {
         setDestNumber((destNumber) => event.target.value);
@@ -190,6 +211,31 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, e
                     <div className='call-controls'>
                         <CallControlButton {...backspaceButtonProps} />
                     </div>
+                    {inCall && (
+                        <div className='dtmf-duration-control'>
+                            <label htmlFor='dtmf-duration'>Tone Duration (ms)</label>
+                            <input
+                                id='dtmf-duration'
+                                type='number'
+                                min={40}
+                                max={6000}
+                                value={dtmfDuration}
+                                onChange={e => setDtmfDuration(Number(e.target.value))}
+                            />
+                        </div>
+                    )}
+                    {inCall && (
+                        <div className='dtmf-sequence-control'>
+                            <input
+                                type='text'
+                                placeholder='e.g. 1234#'
+                                value={dtmfSequence}
+                                onChange={e => setDtmfSequence(e.target.value.replace(/[^0-9a-dA-D#*]/g, ''))}
+                                onKeyDown={e => e.key === 'Enter' && handleSendDtmfSequence()}
+                            />
+                            <button onClick={handleSendDtmfSequence} disabled={!dtmfSequence}>Send DTMF</button>
+                        </div>
+                    )}
                     <DigitGrid onClick={handleDigitClick} />
                 </>
             )}
