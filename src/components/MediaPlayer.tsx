@@ -35,6 +35,7 @@ function MediaPlayer({ inboundStream }: { inboundStream: MediaStream | null }) {
         }
         const source = context.createMediaStreamSource(inboundStream);
         source.connect(analyser);
+        analyser.connect(context.createMediaStreamDestination());
         audioRef.current.srcObject = inboundStream;
         sourceRef.current = source;
         context.resume();
