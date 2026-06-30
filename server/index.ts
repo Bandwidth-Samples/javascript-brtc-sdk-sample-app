@@ -368,6 +368,25 @@ app.post('/callbacks/bandwidth/status', (req: Request, res: Response) => {
     res.sendStatus(200);
 });
 
+// POST /connectstatus - <Connect> bridge status events between the PSTN call and the
+// WebRTC endpoint (set via eventCallbackUrl in processInboundCall's BXML). This is how
+// we learn the PSTN party hung up — without it, endpointCallStatusMap never updates and
+// the app's call-status polling never sees "disconnected".
+app.post('/connectstatus', (req: Request, res: Response) => {
+    const event = req.body;
+    console.log('Connect status event:', JSON.stringify(event, null, 2));
+
+    const callId: string = event.fromType === 'CALL' ? event.from : event.to;
+    const status: string = event.status;
+
+    if (callId && status && !['INITIATED', 'ANSWERED'].includes(status)) {
+        console.log(`Connect bridge ended for call ${callId}: ${status}`);
+        handleCallDisconnect(callId, status);
+    }
+
+    res.sendStatus(200);
+});
+
 // POST /calls/answer - BXML callback when an outbound call is answered
 app.post('/calls/answer', (req: Request, res: Response) => {
     const callId: string = req.body.callId;
