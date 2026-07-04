@@ -167,10 +167,10 @@ function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClien
     };
 
     return (
-        <div>
+        <div style={{ flex: '1 1 320px', minWidth: 0, maxWidth: 400 }}>
             <div>
                 <audio ref={audioRef} />
-                <canvas ref={canvasRef} width={400} height={200} style={{ border: "1px solid black" }} />
+                <canvas ref={canvasRef} width={400} height={200} className="audio-canvas" style={{ border: "1px solid black" }} />
                 <div>
                     <button onClick={handlePlay}>{isPlaying ? "Mute" : "Unmute"}</button>
                 </div>

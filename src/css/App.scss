@@ -1,7 +1,30 @@
 // App.scss
 
+@import './utils/_variables.scss';
+
 .App {
   text-align: center;
+  width: 100%;
+  padding: 0 16px;
+}
+
+.app-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.audio-canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media (max-width: $slim-mobile-view-width) {
+  .App {
+    padding: 0 8px;
+  }
 }
 
 .App-logo {

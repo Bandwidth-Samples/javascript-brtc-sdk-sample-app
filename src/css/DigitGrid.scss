@@ -5,6 +5,7 @@
 .digit-grid {
   margin-top: 20px;
   width: 290px;
+  max-width: 100%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-gap: 1.2rem;

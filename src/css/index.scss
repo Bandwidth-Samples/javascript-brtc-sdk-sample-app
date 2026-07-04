@@ -1,5 +1,33 @@
 // index.scss
 
+@import './utils/_variables.scss';
+
+:root {
+  --button-size: #{$button-size};
+  --grey15: #{rgba($black, 0.15)};
+  --grey20: #{rgba($black, 0.2)};
+  --grey55: #{rgba($black, 0.55)};
+  --grey65: #{rgba($black, 0.65)};
+  --green65: #{$green65};
+  --green90: #{darken($green65, 10%)};
+  --red55: rgb(217, 58, 58);
+  --red90: rgb(163, 38, 38);
+  --blue5: #{$blue5};
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+select, input, textarea {
+  max-width: 100%;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

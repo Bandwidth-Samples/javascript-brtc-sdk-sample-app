@@ -56,11 +56,11 @@ function App() {
                 {readyMetadata && (
                     <>
                     <h2>Bandwidth RTC Agent Sample</h2>
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                    <div className="app-row">
                         <MediaCapture bandwidthRtcClient={brtcClient} />
                         <MediaPlayer bandwidthRtcClient={brtcClient} inCall={inCall} setInCall={setInCall} />
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                    <div className="app-row">
                         <CallController bandwidthRtcClient={brtcClient} readyMetadata={readyMetadata} inCall={inCall} setInCall={setInCall} />
                     </div>
                     </>
