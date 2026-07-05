@@ -68,33 +68,42 @@ function MediaPlayer({inboundStream}: {inboundStream: MediaStream | null}) {
         requestAnimationFrame(drawFFT);
     };
 
+    const handleMediaSubscribe = (mediaStream: MediaStream, context: AudioContext, analyserNode: AnalyserNode) => {
+        const sourceNode = context.createMediaStreamSource(mediaStream);
+        const destination = context.createMediaStreamDestination();
+        sourceNode.connect(analyserNode);
+        analyserNode.connect(destination);
+        if (audioRef.current) {
+            audioRef.current.srcObject = mediaStream;
+        }
+        setAudioSourceNode(sourceNode);
+        context.resume();
+        setDirectMediaStream(destination.stream);
+        drawFFT();
+        return {sourceNode, destination};
+    }
+
+    const handleMediaUnsubscribe = (mediaStream: MediaStream, sourceNode: MediaStreamAudioSourceNode, destination: MediaStreamAudioDestinationNode, analyserNode: AnalyserNode) => {
+        console.log("Unsubscribing from stream:", mediaStream.id);
+        sourceNode.disconnect();
+        analyserNode.disconnect(destination);
+        if (audioRef.current) {
+            audioRef.current.srcObject = null;
+        }
+        setAudioSourceNode(null);
+        setDirectMediaStream(null);
+        setIsPlaying(false);
+        setLocalOutputAudioNode(undefined);
+    }
+
     useEffect(() => {
         if (!audioContext || !analyser || !inboundStream || !audioRef.current) {
             return;
         }
 
-        const sourceNode = audioContext.createMediaStreamSource(inboundStream);
-        const destination = audioContext.createMediaStreamDestination();
-        sourceNode.connect(analyser);
-        analyser.connect(destination);
-        audioRef.current.srcObject = inboundStream;
-        setAudioSourceNode(sourceNode);
-        audioContext.resume();
-        setDirectMediaStream(destination.stream);
-        drawFFT();
+        const {sourceNode, destination} = handleMediaSubscribe(inboundStream, audioContext, analyser);
 
-        return () => {
-            console.log("Unsubscribing from stream:", inboundStream.id);
-            sourceNode.disconnect();
-            analyser.disconnect(destination);
-            if (audioRef.current) {
-                audioRef.current.srcObject = null;
-            }
-            setAudioSourceNode(null);
-            setDirectMediaStream(null);
-            setIsPlaying(false);
-            setLocalOutputAudioNode(undefined);
-        };
+        return () => handleMediaUnsubscribe(inboundStream, sourceNode, destination, analyser);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [inboundStream, audioContext, analyser]);
 
