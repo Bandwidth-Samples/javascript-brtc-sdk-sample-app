@@ -107,6 +107,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
         let result = await bandwidthRtcClient.requestOutboundConnection(e164Number, EndpointType.PHONE_NUMBER)
         if (result.accepted) {
             setCallStatus('Ringing');
+            setInCall(true);
         } else {
             setCallStatus('Declined');
         }
@@ -117,6 +118,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
         const e164Number = '+' + destNumber.replace(/[^\d]/g, '');
         let result = await bandwidthRtcClient.hangupConnection(e164Number, EndpointType.PHONE_NUMBER)
         setCallStatus(result.result)
+        setInCall(false);
     }
 
     const handleDigitClick = (value: string) => {

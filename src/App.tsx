@@ -33,12 +33,10 @@ function App() {
             // readyMetadata (and therefore MediaPlayer) exists.
             brtcClient.onStreamAvailable((s) => {
                 console.log("Stream available:", s);
-                setInCall(true);
                 setInboundStream(s.mediaStream);
             })
             brtcClient.onStreamUnavailable((s) => {
                 console.log("Stream unavailable:", s);
-                setInCall(false);
                 setInboundStream(null);
             })
             brtcClient.onReady((readyMetadata: ReadyMetadata) => {
