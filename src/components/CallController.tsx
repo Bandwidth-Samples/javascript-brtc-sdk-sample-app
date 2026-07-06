@@ -67,10 +67,6 @@ function NumberInput ({ onChange, value }: {onChange: ChangeEventHandler, value:
 }
 
 
-function isDestinationValid(destination: string): boolean {
-    return true
-}
-
 function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, connected}: {bandwidthRtcClient: BandwidthRtc, readyMetadata: ReadyMetadata, inCall: boolean, setInCall: (inCall: boolean) => void, connected: boolean} ) {
     if (!bandwidthRtcClient) {
         throw new Error("webrtcClient is required");
@@ -114,9 +110,17 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
     }
     const handleHangUp = async () => {
         setCallStatus('Hanging Up...');
-        // Ensure E.164 format: clean digits and add '+'
-        const e164Number = '+' + destNumber.replace(/[^\d]/g, '');
-        let result = await bandwidthRtcClient.hangupConnection(e164Number, EndpointType.PHONE_NUMBER)
+        // Hang up whichever destination the active call is using. endpointType is
+        // frozen during a call (the selector is disabled), so it still reflects
+        // how this call was dialed.
+        let result;
+        if (endpointType === EndpointType.ENDPOINT) {
+            result = await bandwidthRtcClient.hangupConnection(endpointTarget, EndpointType.ENDPOINT)
+        } else {
+            // Ensure E.164 format: clean digits and add '+'
+            const e164Number = '+' + destNumber.replace(/[^\d]/g, '');
+            result = await bandwidthRtcClient.hangupConnection(e164Number, EndpointType.PHONE_NUMBER)
+        }
         setCallStatus(result.result)
         setInCall(false);
     }
@@ -139,7 +143,14 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
     }
 
     const handleDialEndpoint = async () => {
-        await bandwidthRtcClient.requestOutboundConnection(endpointTarget, EndpointType.ENDPOINT)
+        setCallStatus('Calling...');
+        let result = await bandwidthRtcClient.requestOutboundConnection(endpointTarget, EndpointType.ENDPOINT)
+        if (result.accepted) {
+            setCallStatus('Ringing');
+            setInCall(true);
+        } else {
+            setCallStatus('Declined');
+        }
     }
 
     const handleDial = async () => {
@@ -151,6 +162,15 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
     }
 
 
+    // A dial is allowed only when the destination for the selected type is filled
+    // in. CALL_ID is not implemented yet, so it can never be dialed.
+    const hasDestination =
+        endpointType === EndpointType.PHONE_NUMBER
+            ? destNumber.replace(/[^\d]/g, '').length > 0
+            : endpointType === EndpointType.ENDPOINT
+                ? endpointTarget.trim().length > 0
+                : false;
+
     const endCallButtonProps = {
         type: 'end-call',
         onClick: handleHangUp,
@@ -161,7 +181,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
     const startCallButtonProps = {
         type: 'start-call',
         onClick: handleDial,
-        disabled: !isDestinationValid(destNumber) || inCall,
+        disabled: !hasDestination || inCall,
         Icon: CallIcon
     };
 
@@ -196,7 +216,9 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
 
             {endpointType == EndpointType.ENDPOINT && (
                 <>
-                <input type="text" disabled={inCall} onChange={(value) => setEndpointTarget(value.target.value)} />
+                {!inCall
+                    ? <input type="text" placeholder="Endpoint ID" value={endpointTarget} onChange={(value) => setEndpointTarget(value.target.value)} />
+                    : <div className='dialed-number'>{endpointTarget}</div>}
                 </>
             )}
             {endpointType == EndpointType.CALL_ID && (
