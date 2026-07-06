@@ -183,7 +183,7 @@ function processInboundCall(callId: string): string {
         }
         return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <StartRecording multiChannel="true" recordingAvailableUrl="${CALLBACK_BASE_URL}/recordingAvailable/b_answer"/>
+    <StartRecording multiChannel="true" recordingAvailableUrl="${CALLBACK_BASE_URL}/recordingAvailable"/>
     <SpeakSentence voice="julie">Connecting</SpeakSentence>
     <Connect eventCallbackUrl="${CALLBACK_BASE_URL}/connectstatus">
         <Endpoint>${endpointId}</Endpoint>
