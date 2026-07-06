@@ -34,10 +34,16 @@ function App() {
             brtcClient.onStreamAvailable((s) => {
                 console.log("Stream available:", s);
                 setInboundStream(s.mediaStream);
+                // The stream arriving means the call actually connected (answered),
+                // so we're truly in-call now — not just ringing.
+                setInCall(true);
             })
             brtcClient.onStreamUnavailable((s) => {
                 console.log("Stream unavailable:", s);
                 setInboundStream(null);
+                // The far side (or gateway) ended the call; reset the UI out of
+                // the in-call/ringing state.
+                setInCall(false);
             })
             brtcClient.onReady((readyMetadata: ReadyMetadata) => {
                 console.log("Ready Metadata:", readyMetadata);
@@ -75,7 +81,7 @@ function App() {
                         <MediaPlayer inboundStream={inboundStream} />
                     </div>
                     <div className="app-row">
-                        <CallController bandwidthRtcClient={brtcClient} readyMetadata={readyMetadata} inCall={inCall} setInCall={setInCall} />
+                        <CallController bandwidthRtcClient={brtcClient} readyMetadata={readyMetadata} inCall={inCall} setInCall={setInCall} connected={inboundStream !== null} />
                     </div>
                     </>
                 )}

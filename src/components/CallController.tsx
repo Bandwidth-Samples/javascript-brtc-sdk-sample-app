@@ -71,7 +71,7 @@ function isDestinationValid(destination: string): boolean {
     return true
 }
 
-function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: {bandwidthRtcClient: BandwidthRtc, readyMetadata: ReadyMetadata, inCall: boolean, setInCall: (inCall: boolean) => void} ) {
+function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, connected}: {bandwidthRtcClient: BandwidthRtc, readyMetadata: ReadyMetadata, inCall: boolean, setInCall: (inCall: boolean) => void, connected: boolean} ) {
     if (!bandwidthRtcClient) {
         throw new Error("webrtcClient is required");
     }
@@ -122,14 +122,15 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
     }
 
     const handleDigitClick = (value: string) => {
-        if (inCall) {
+        if (connected) {
+            // DTMF only once the call is answered; during ringing, digits do nothing.
             console.log(`Sending DTMF: ${value}, duration: ${dtmfDuration}ms`);
             try {
                 bandwidthRtcClient.sendDtmf(value, undefined, dtmfDuration);
             } catch (err) {
                 console.error('sendDtmf failed:', err);
             }
-        } else {
+        } else if (!inCall) {
             setDestNumber((destNumber) => destNumber.concat(value));
         }
     }
@@ -191,7 +192,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
                 ))}
             </select>
 
-            <h2>{!inCall && callStatus}{inCall && "In Call"}</h2>
+            <h2>{!inCall && callStatus}{inCall && !connected && "Ringing"}{inCall && connected && "In Call"}</h2>
 
             {endpointType == EndpointType.ENDPOINT && (
                 <>
@@ -209,7 +210,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
                     <div className='call-controls'>
                         <CallControlButton {...backspaceButtonProps} />
                     </div>
-                    {inCall && (
+                    {connected && (
                         <div className='dtmf-duration-control'>
                             <label htmlFor='dtmf-duration'>Tone Duration (ms)</label>
                             <input
@@ -222,7 +223,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
                             />
                         </div>
                     )}
-                    {inCall && (
+                    {connected && (
                         <div className='dtmf-sequence-control'>
                             <input
                                 type='text'
