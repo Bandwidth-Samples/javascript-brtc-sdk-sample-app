@@ -3,7 +3,7 @@ import BandwidthRtc from "bandwidth-rtc";
 import {Endpoint} from "../../server/types"
 import '../css/EndpointHandler.scss';
 
-function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwidthRtcClient: BandwidthRtc, resetClient: () => void, gatewayUrl?: string }) {
+function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl, autoAccept, setAutoAccept}: {bandwidthRtcClient: BandwidthRtc, resetClient: () => void, gatewayUrl?: string, autoAccept: boolean, setAutoAccept: (autoAccept: boolean) => void }) {
     const [endpoint, setEndpoint] = useState<Endpoint | null>(null);
     const [banner, setBanner] = useState<{ message: string; isError: boolean } | null>(null);
 
@@ -23,7 +23,8 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwid
             await bandwidthRtcClient.connect({
                 endpointToken: endpointData.token
             }, {
-                websocketUrl: gatewayUrl
+                websocketUrl: gatewayUrl,
+                autoAccept
             }).then(() => {
                 console.log("WebRTC Client Connected");
             }).catch((error) => {
@@ -88,6 +89,15 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwid
                 <button onClick={deleteEndpoint} disabled={!endpoint}>Disconnect & Delete Endpoint</button>
                 <button onClick={deleteAllEndpoints}>Delete All Endpoints</button>
             </div>
+            <label className="auto-accept-toggle" title="Set before creating the endpoint. When off, inbound calls prompt with Accept/Decline.">
+                <input
+                    type="checkbox"
+                    checked={autoAccept}
+                    disabled={endpoint !== null}
+                    onChange={(e) => setAutoAccept(e.target.checked)}
+                />
+                Auto-accept inbound calls
+            </label>
             {endpoint !== null && (
                 <p className="endpoint-id">{endpoint.endpointId}</p>
             )}

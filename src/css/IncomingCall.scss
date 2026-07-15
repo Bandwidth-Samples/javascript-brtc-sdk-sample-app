@@ -1,0 +1,53 @@
+// IncomingCall.scss
+
+.incoming-call {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: 480px;
+    margin: 8px auto;
+    padding: 12px 24px;
+    background: #e3f2fd;
+    border: 2px solid #1976d2;
+    border-radius: 8px;
+
+    .incoming-call-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .incoming-call-label {
+        font-weight: 600;
+    }
+
+    .incoming-call-from {
+        font-size: 0.9rem;
+        color: #555;
+        word-break: break-all;
+    }
+
+    .incoming-call-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    button {
+        border: none;
+        padding: 8px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        color: white;
+
+        &.accept {
+            background: #4caf50;
+        }
+
+        &.decline {
+            background: #f44336;
+        }
+    }
+}
