@@ -13,6 +13,7 @@ function App() {
     const [brtcClientReady, setBrtcClientReady] = useState<boolean>(false);
     const [readyMetadata, setReadyMetadata] = useState<ReadyMetadata | null>(null);
     const [inCall, setInCall] = useState(false);
+    const [inboundStream, setInboundStream] = useState<MediaStream | null>(null);
 
     const prepBrtcClient= async (reset: boolean) => {
         console.log("Prepping Bandwidth RTC Client")
@@ -21,10 +22,29 @@ function App() {
             setBrtcClientReady(false)
             setReadyMetadata(null)
             setBrtcClient(null)
+            setInCall(false)
+            setInboundStream(null)
         }
         if (!brtcClient || reset) {
             console.log("Creating Bandwidth RTC Client")
             let brtcClient = new BandwidthRtc('debug')
+            // Registered before connect() runs: the subscribing peer connection's
+            // ontrack fires once during initial connection setup, before
+            // readyMetadata (and therefore MediaPlayer) exists.
+            brtcClient.onStreamAvailable((s) => {
+                console.log("Stream available:", s);
+                setInboundStream(s.mediaStream);
+                // The stream arriving means the call actually connected (answered),
+                // so we're truly in-call now — not just ringing.
+                setInCall(true);
+            })
+            brtcClient.onStreamUnavailable((s) => {
+                console.log("Stream unavailable:", s);
+                setInboundStream(null);
+                // The far side (or gateway) ended the call; reset the UI out of
+                // the in-call/ringing state.
+                setInCall(false);
+            })
             brtcClient.onReady((readyMetadata: ReadyMetadata) => {
                 console.log("Ready Metadata:", readyMetadata);
                 setBrtcClientReady(true)
@@ -56,12 +76,12 @@ function App() {
                 {readyMetadata && (
                     <>
                     <h2>Bandwidth RTC Agent Sample</h2>
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                    <div className="app-row">
                         <MediaCapture bandwidthRtcClient={brtcClient} />
-                        <MediaPlayer bandwidthRtcClient={brtcClient} inCall={inCall} setInCall={setInCall} />
+                        <MediaPlayer inboundStream={inboundStream} />
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                        <CallController bandwidthRtcClient={brtcClient} readyMetadata={readyMetadata} inCall={inCall} setInCall={setInCall} />
+                    <div className="app-row">
+                        <CallController bandwidthRtcClient={brtcClient} readyMetadata={readyMetadata} inCall={inCall} setInCall={setInCall} connected={inboundStream !== null} />
                     </div>
                     </>
                 )}

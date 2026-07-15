@@ -1,45 +1,21 @@
 import React, {useEffect, useRef, useState} from "react";
-import BandwidthRtc, {RtcStream} from "bandwidth-rtc";
 
-function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClient: BandwidthRtc, inCall: boolean, setInCall: (inCall: boolean) => void} ) {
-    if (!bandwidthRtcClient) {
-        throw new Error("webrtcClient is required");
-    }
-    if (!setInCall) {
-        throw new Error("setInCall is required");
-    }
-
-    // Register inbound media handler
-    bandwidthRtcClient.onStreamAvailable(async (s) => {
-        console.log("Stream available:", s)
-        setInCall(true);
-        await handleMediaSubscribe(s)
-    });
-    bandwidthRtcClient.onStreamUnavailable(async (s) => {
-        console.log("Stream unavailable:", s)
-        setInCall(false);
-        await handleMediaUnsubscribe(s)
-    })
-
+function MediaPlayer({inboundStream}: {inboundStream: MediaStream | null}) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const [audioSource, setAudioSource] = useState<HTMLAudioElement | null>(null);
     const [audioSourceNode, setAudioSourceNode] = useState<AudioNode | null>(null);
     const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
     const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
-    const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
-    const [dataArray, setDataArray] = useState<Uint8Array>(new Uint8Array(512));
-    const [fftSize, setFftSize] = useState<number>(512);
+    const [dataArray] = useState<Uint8Array>(new Uint8Array(512));
     const [directMediaStream, setDirectMediaStream] = useState<MediaStream | null>(null);
     const [localOutputAudioNode, setLocalOutputAudioNode] = useState<AudioNode | undefined>(undefined);
-    const [outputStreamSourceNode, setOutputStreamSourceNode] = useState<AudioNode | undefined>(undefined);
 
     useEffect(() => {
         // Initialize Web Audio API
         const context = new window.AudioContext();
         const analyserNode = context.createAnalyser();
-        analyserNode.fftSize = fftSize;
+        analyserNode.fftSize = dataArray.length;
         setAudioContext(context);
         setAnalyser(analyserNode);
     }, []);
@@ -92,47 +68,44 @@ function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClien
         requestAnimationFrame(drawFFT);
     };
 
-    const handleMediaSubscribe = async (rtcStream: RtcStream): Promise<MediaStream> => {
-        if (!audioContext || !analyser) {
-            throw new Error("Audio context or analyser is not initialized");
+    const handleMediaSubscribe = (mediaStream: MediaStream, context: AudioContext, analyserNode: AnalyserNode) => {
+        const sourceNode = context.createMediaStreamSource(mediaStream);
+        const destination = context.createMediaStreamDestination();
+        sourceNode.connect(analyserNode);
+        analyserNode.connect(destination);
+        if (audioRef.current) {
+            audioRef.current.srcObject = mediaStream;
         }
-        if (!audioRef.current) {
-            throw new Error("Audio element is not initialized");
-        }
-        if (!rtcStream.mediaStream) {
-            throw new Error("RTC stream has no media stream");
-        }
-        if (!isSubscribed) {
-            let sourceNode = audioContext.createMediaStreamSource(rtcStream.mediaStream);
-            let destination = audioContext.createMediaStreamDestination();
-
-            sourceNode.connect(analyser);
-            analyser.connect(destination);
-            let stream = destination.stream;
-            drawFFT();
-            audioRef.current.srcObject = rtcStream.mediaStream;
-            setAudioSourceNode(sourceNode);
-            setIsSubscribed(true);
-            await audioContext.resume()
-            setDirectMediaStream(stream)
-            return stream;
-        } else {
-            throw new Error("Already subscribed to media");
-        }
+        setAudioSourceNode(sourceNode);
+        context.resume();
+        setDirectMediaStream(destination.stream);
+        drawFFT();
+        return {sourceNode, destination};
     }
 
-    const handleMediaUnsubscribe = async (s: RtcStream) => {
-        console.log("Unsubscribing from stream:", s.mediaStream?.id);
-        // Stop playing if we are
-        if (isPlaying) {
-            await handlePlay()
+    const handleMediaUnsubscribe = (mediaStream: MediaStream, sourceNode: MediaStreamAudioSourceNode, destination: MediaStreamAudioDestinationNode, analyserNode: AnalyserNode) => {
+        console.log("Unsubscribing from stream:", mediaStream.id);
+        sourceNode.disconnect();
+        analyserNode.disconnect(destination);
+        if (audioRef.current) {
+            audioRef.current.srcObject = null;
         }
-        if (isSubscribed) {
-            setIsSubscribed(false);
-            setAudioSourceNode(null);
-            setDirectMediaStream(null);
-        }
+        setAudioSourceNode(null);
+        setDirectMediaStream(null);
+        setIsPlaying(false);
+        setLocalOutputAudioNode(undefined);
     }
+
+    useEffect(() => {
+        if (!audioContext || !analyser || !inboundStream || !audioRef.current) {
+            return;
+        }
+
+        const {sourceNode, destination} = handleMediaSubscribe(inboundStream, audioContext, analyser);
+
+        return () => handleMediaUnsubscribe(inboundStream, sourceNode, destination, analyser);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [inboundStream, audioContext, analyser]);
 
     const handlePlay = async () => {
         console.log("handlePlay")
@@ -143,34 +116,26 @@ function MediaPlayer({bandwidthRtcClient, inCall, setInCall}: {bandwidthRtcClien
         }
         if (!audioContext) {
             throw new Error("Audio context is not initialized");
-            return
         }
         if (!directMediaStream) {
             console.log("directMediaStream is null")
             return
         }
-        if (!sourceNode) {
-            sourceNode = audioContext.createMediaStreamSource(directMediaStream)
-            // audioRef.current.srcObject = mediaStream;
-            setOutputStreamSourceNode(sourceNode)
-        }
         if (!localOutputAudioNode) {
             setLocalOutputAudioNode(sourceNode.connect(audioContext.destination))
             setIsPlaying(true)
         } else {
-            if (localOutputAudioNode) {
-                sourceNode.disconnect(audioContext.destination);
-                setLocalOutputAudioNode(undefined)
-                setIsPlaying(false)
-            }
+            sourceNode.disconnect(audioContext.destination);
+            setLocalOutputAudioNode(undefined)
+            setIsPlaying(false)
         }
     };
 
     return (
-        <div>
+        <div style={{ flex: '1 1 320px', minWidth: 0, maxWidth: 400 }}>
             <div>
                 <audio ref={audioRef} />
-                <canvas ref={canvasRef} width={400} height={200} style={{ border: "1px solid black" }} />
+                <canvas ref={canvasRef} width={400} height={200} className="audio-canvas" style={{ border: "1px solid black" }} />
                 <div>
                     <button onClick={handlePlay}>{isPlaying ? "Mute" : "Unmute"}</button>
                 </div>

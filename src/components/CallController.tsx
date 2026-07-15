@@ -3,6 +3,7 @@ import React, {ChangeEventHandler, useState} from "react";
 import '../css/DigitGrid.scss';
 import '../css/CallControlButton.scss';
 import '../css/NumberInput.scss';
+import '../css/CallController.scss';
 import CallIcon from '@mui/icons-material/Call';
 import CallEndIcon from '@mui/icons-material/CallEnd';
 import ShortcutOutlinedIcon from '@mui/icons-material/ShortcutOutlined';
@@ -66,11 +67,7 @@ function NumberInput ({ onChange, value }: {onChange: ChangeEventHandler, value:
 }
 
 
-function isDestinationValid(destination: string): boolean {
-    return true
-}
-
-function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: {bandwidthRtcClient: BandwidthRtc, readyMetadata: ReadyMetadata, inCall: boolean, setInCall: (inCall: boolean) => void} ) {
+function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, connected}: {bandwidthRtcClient: BandwidthRtc, readyMetadata: ReadyMetadata, inCall: boolean, setInCall: (inCall: boolean) => void, connected: boolean} ) {
     if (!bandwidthRtcClient) {
         throw new Error("webrtcClient is required");
     }
@@ -106,27 +103,38 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
         let result = await bandwidthRtcClient.requestOutboundConnection(e164Number, EndpointType.PHONE_NUMBER)
         if (result.accepted) {
             setCallStatus('Ringing');
+            setInCall(true);
         } else {
             setCallStatus('Declined');
         }
     }
     const handleHangUp = async () => {
         setCallStatus('Hanging Up...');
-        // Ensure E.164 format: clean digits and add '+'
-        const e164Number = '+' + destNumber.replace(/[^\d]/g, '');
-        let result = await bandwidthRtcClient.hangupConnection(e164Number, EndpointType.PHONE_NUMBER)
+        // Hang up whichever destination the active call is using. endpointType is
+        // frozen during a call (the selector is disabled), so it still reflects
+        // how this call was dialed.
+        let result;
+        if (endpointType === EndpointType.ENDPOINT) {
+            result = await bandwidthRtcClient.hangupConnection(endpointTarget, EndpointType.ENDPOINT)
+        } else {
+            // Ensure E.164 format: clean digits and add '+'
+            const e164Number = '+' + destNumber.replace(/[^\d]/g, '');
+            result = await bandwidthRtcClient.hangupConnection(e164Number, EndpointType.PHONE_NUMBER)
+        }
         setCallStatus(result.result)
+        setInCall(false);
     }
 
     const handleDigitClick = (value: string) => {
-        if (inCall) {
+        if (connected) {
+            // DTMF only once the call is answered; during ringing, digits do nothing.
             console.log(`Sending DTMF: ${value}, duration: ${dtmfDuration}ms`);
             try {
                 bandwidthRtcClient.sendDtmf(value, undefined, dtmfDuration);
             } catch (err) {
                 console.error('sendDtmf failed:', err);
             }
-        } else {
+        } else if (!inCall) {
             setDestNumber((destNumber) => destNumber.concat(value));
         }
     }
@@ -135,7 +143,14 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
     }
 
     const handleDialEndpoint = async () => {
-        await bandwidthRtcClient.requestOutboundConnection(endpointTarget, EndpointType.ENDPOINT)
+        setCallStatus('Calling...');
+        let result = await bandwidthRtcClient.requestOutboundConnection(endpointTarget, EndpointType.ENDPOINT)
+        if (result.accepted) {
+            setCallStatus('Ringing');
+            setInCall(true);
+        } else {
+            setCallStatus('Declined');
+        }
     }
 
     const handleDial = async () => {
@@ -147,6 +162,15 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
     }
 
 
+    // A dial is allowed only when the destination for the selected type is filled
+    // in. CALL_ID is not implemented yet, so it can never be dialed.
+    const hasDestination =
+        endpointType === EndpointType.PHONE_NUMBER
+            ? destNumber.replace(/[^\d]/g, '').length > 0
+            : endpointType === EndpointType.ENDPOINT
+                ? endpointTarget.trim().length > 0
+                : false;
+
     const endCallButtonProps = {
         type: 'end-call',
         onClick: handleHangUp,
@@ -157,7 +181,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
     const startCallButtonProps = {
         type: 'start-call',
         onClick: handleDial,
-        disabled: !isDestinationValid(destNumber) || inCall,
+        disabled: !hasDestination || inCall,
         Icon: CallIcon
     };
 
@@ -188,11 +212,13 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
                 ))}
             </select>
 
-            <h2>{!inCall && callStatus}{inCall && "In Call"}</h2>
+            <h2>{!inCall && callStatus}{inCall && !connected && "Ringing"}{inCall && connected && "In Call"}</h2>
 
             {endpointType == EndpointType.ENDPOINT && (
                 <>
-                <input type="text" disabled={inCall} onChange={(value) => setEndpointTarget(value.target.value)} />
+                {!inCall
+                    ? <input type="text" placeholder="Endpoint ID" value={endpointTarget} onChange={(value) => setEndpointTarget(value.target.value)} />
+                    : <div className='dialed-number'>{endpointTarget}</div>}
                 </>
             )}
             {endpointType == EndpointType.CALL_ID && (
@@ -206,7 +232,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
                     <div className='call-controls'>
                         <CallControlButton {...backspaceButtonProps} />
                     </div>
-                    {inCall && (
+                    {connected && (
                         <div className='dtmf-duration-control'>
                             <label htmlFor='dtmf-duration'>Tone Duration (ms)</label>
                             <input
@@ -219,7 +245,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall}: 
                             />
                         </div>
                     )}
-                    {inCall && (
+                    {connected && (
                         <div className='dtmf-sequence-control'>
                             <input
                                 type='text'

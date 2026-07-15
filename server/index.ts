@@ -183,6 +183,7 @@ function processInboundCall(callId: string): string {
         }
         return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+    <StartRecording multiChannel="true" recordingAvailableUrl="${CALLBACK_BASE_URL}/recordingAvailable"/>
     <SpeakSentence voice="julie">Connecting</SpeakSentence>
     <Connect eventCallbackUrl="${CALLBACK_BASE_URL}/connectstatus">
         <Endpoint>${endpointId}</Endpoint>
@@ -191,6 +192,7 @@ function processInboundCall(callId: string): string {
     }
     return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+    <StartRecording multiChannel="true" recordingAvailableUrl="${CALLBACK_BASE_URL}/recordingAvailable/b_answer"/>
     <SpeakSentence voice="julie">Connecting</SpeakSentence>
     <Connect eventCallbackUrl="${CALLBACK_BASE_URL}/connectstatus">
         <Endpoint>${requestingEndpointId}</Endpoint>
@@ -335,6 +337,20 @@ app.post('/callbacks/bandwidth', async (req: Request, res: Response) => {
                 } catch (error: any) {
                     console.error('Error placing outbound call:', error.message);
                 }
+                return res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><Response/>`);
+            }
+            if (toType === 'ENDPOINT') {
+                // Endpoint-to-endpoint has no PSTN leg to place. We answer the
+                // request with BXML containing a <Connect> verb targeting the
+                // destination endpoint; the callback proxy executes it against the
+                // requesting endpoint's leg, bridging the two WebRTC endpoints.
+                console.log(`Bridging endpoints via <Connect>: ${event.from} -> ${to}`);
+                return res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Connect eventCallbackUrl="${CALLBACK_BASE_URL}/connectstatus">
+        <Endpoint>${to}</Endpoint>
+    </Connect>
+</Response>`);
             }
             return res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><Response/>`);
     }
@@ -398,6 +414,13 @@ app.post('/calls/status', async (req: Request, res: Response) => {
             res.type('application/xml').send(xmlResponse);
             break;
     }
+});
+
+// POST /connectstatus - Connect bridge lifecycle events (PSTN <Connect> and
+// endpoint-to-endpoint connect). Logged for observability; no BXML response needed.
+app.post('/connectstatus', (req: Request, res: Response) => {
+    console.log('Connect status event:', JSON.stringify(req.body, null, 2));
+    res.sendStatus(200);
 });
 
 // GET /api/endpoint/:endpointId/call-status - Get current PSTN call status for an endpoint

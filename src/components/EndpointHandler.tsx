@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from "react";
 import BandwidthRtc from "bandwidth-rtc";
 import {Endpoint} from "../../server/types"
+import '../css/EndpointHandler.scss';
 
 function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwidthRtcClient: BandwidthRtc, resetClient: () => void, gatewayUrl?: string }) {
     const [endpoint, setEndpoint] = useState<Endpoint | null>(null);
@@ -82,11 +83,13 @@ function EndpointHandler({bandwidthRtcClient, resetClient, gatewayUrl}: {bandwid
                     <button onClick={() => setBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', color: '#721c24' }}>✕</button>
                 </div>
             )}
-            <button onClick={createEndpoint}>Create Endpoint</button>
-            <button onClick={deleteEndpoint} disabled={!endpoint}>Disconnect & Delete Endpoint</button>
-            <button onClick={deleteAllEndpoints}>Delete All Endpoints</button>
+            <div className="endpoint-actions">
+                <button onClick={createEndpoint}>Create Endpoint</button>
+                <button onClick={deleteEndpoint} disabled={!endpoint}>Disconnect & Delete Endpoint</button>
+                <button onClick={deleteAllEndpoints}>Delete All Endpoints</button>
+            </div>
             {endpoint !== null && (
-                <p>{endpoint.endpointId}</p>
+                <p className="endpoint-id">{endpoint.endpointId}</p>
             )}
         </div>
     );

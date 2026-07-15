@@ -3,9 +3,10 @@
 @import './utils/_variables.scss';
 
 .navbar {
-    width: 100vw;
+    width: 100%;
     height: auto;
     display: flex;
+    align-items: center;
     justify-content: flex-start;
     background-color: $blue75;
     padding: 16px 0;
@@ -22,4 +23,27 @@
     font-size: 36px;
     font-weight: 300;
     margin-left: 10px;
+}
+
+@media (max-width: $slim-mobile-view-width) {
+    .navbar-img {
+        height: 40px;
+        margin-left: 16px;
+    }
+
+    .text {
+        font-size: 26px;
+    }
+}
+
+@media (max-width: $ultra-slim-mobile-view-width) {
+    .navbar-img {
+        height: 32px;
+        margin-left: 12px;
+    }
+
+    .text {
+        font-size: 20px;
+        margin-left: 8px;
+    }
 }
