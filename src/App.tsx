@@ -3,7 +3,7 @@ import './css/App.scss';
 import Navbar from "./components/Navbar";
 import EndpointHandler from "./components/EndpointHandler";
 import MediaCapture from "./components/MediaCapture";
-import BandwidthRtc, {EndpointType, ReadyMetadata, RtcStream} from "bandwidth-rtc";
+import BandwidthRtc, {ReadyMetadata, RtcStream} from "bandwidth-rtc";
 import MediaPlayer from "./components/MediaPlayer";
 import CallController from "./components/CallController";
 import IncomingCall from "./components/IncomingCall";
@@ -76,10 +76,11 @@ function App() {
         await prepBrtcClient(true)
     }
 
-    const handleAccept = () => {
-        if (!incomingCall) return;
-        // Accept is purely client-side: the gateway already bridged the call and
-        // the audio is flowing, so accepting just means playing the stream.
+    const handleAccept = async () => {
+        if (!brtcClient || !incomingCall) return;
+        // Open the gateway's egress gate so the parked (ringing) call's audio flows,
+        // then play the stream and enter the in-call state.
+        await brtcClient.acceptStream();
         setInboundStream(incomingCall.mediaStream);
         setInCall(true);
         setIncomingCall(null);
@@ -87,8 +88,9 @@ function App() {
 
     const handleDecline = async () => {
         if (!brtcClient) return;
-        // Decline ends the call through the existing hangup path
-        await brtcClient.hangupConnection(incomingCall?.from ?? "", EndpointType.CALL_ID);
+        // Decline: the gateway keeps its egress gate closed and cancels the call.
+        // onStreamUnavailable follows and clears the rest of the state.
+        await brtcClient.declineStream();
         setIncomingCall(null);
     }
 
