@@ -87,9 +87,7 @@ function App() {
 
     const handleDecline = async () => {
         if (!brtcClient) return;
-        // Decline ends the call through the existing hangup path. The gateway hangs
-        // up the active inbound call by its own tracked id, so these args are
-        // vestigial for a decline — we pass the caller identity for clarity.
+        // Decline ends the call through the existing hangup path
         await brtcClient.hangupConnection(incomingCall?.from ?? "", EndpointType.CALL_ID);
         setIncomingCall(null);
     }
