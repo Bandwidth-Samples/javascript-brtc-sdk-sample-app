@@ -20,7 +20,7 @@ function App() {
     const [incomingCall, setIncomingCall] = useState<RtcStream | null>(null);
     // Sent to the gateway at connect time via setMediaPreferences. The gateway
     // echoes its decision back on each stream (RtcStream.autoAccepted).
-    const [autoAccept, setAutoAccept] = useState(true);
+    const [autoAccept, setAutoAccept] = useState(false);
 
     const prepBrtcClient= async (reset: boolean) => {
         console.log("Prepping Bandwidth RTC Client")
@@ -78,8 +78,6 @@ function App() {
 
     const handleAccept = async () => {
         if (!brtcClient || !incomingCall) return;
-        // Open the gateway's egress gate so the parked (ringing) call's audio flows,
-        // then play the stream and enter the in-call state.
         await brtcClient.acceptStream();
         setInboundStream(incomingCall.mediaStream);
         setInCall(true);
@@ -88,8 +86,6 @@ function App() {
 
     const handleDecline = async () => {
         if (!brtcClient) return;
-        // Decline: the gateway keeps its egress gate closed and cancels the call.
-        // onStreamUnavailable follows and clears the rest of the state.
         await brtcClient.declineStream();
         setIncomingCall(null);
     }
