@@ -3,9 +3,10 @@ import './css/App.scss';
 import Navbar from "./components/Navbar";
 import EndpointHandler from "./components/EndpointHandler";
 import MediaCapture from "./components/MediaCapture";
-import BandwidthRtc, {ReadyMetadata} from "bandwidth-rtc";
+import BandwidthRtc, {ReadyMetadata, RtcStream} from "bandwidth-rtc";
 import MediaPlayer from "./components/MediaPlayer";
 import CallController from "./components/CallController";
+import IncomingCall from "./components/IncomingCall";
 
 function App() {
 
@@ -14,6 +15,12 @@ function App() {
     const [readyMetadata, setReadyMetadata] = useState<ReadyMetadata | null>(null);
     const [inCall, setInCall] = useState(false);
     const [inboundStream, setInboundStream] = useState<MediaStream | null>(null);
+    // When autoAccept is off, an incoming stream that the gateway did not
+    // auto-accept lands here so we can prompt the user with Accept/Decline.
+    const [incomingCall, setIncomingCall] = useState<RtcStream | null>(null);
+    // Sent to the gateway at connect time via setMediaPreferences. The gateway
+    // echoes its decision back on each stream (RtcStream.autoAccepted).
+    const [autoAccept, setAutoAccept] = useState(false);
 
     const prepBrtcClient= async (reset: boolean) => {
         console.log("Prepping Bandwidth RTC Client")
@@ -24,6 +31,7 @@ function App() {
             setBrtcClient(null)
             setInCall(false)
             setInboundStream(null)
+            setIncomingCall(null)
         }
         if (!brtcClient || reset) {
             console.log("Creating Bandwidth RTC Client")
@@ -33,17 +41,23 @@ function App() {
             // readyMetadata (and therefore MediaPlayer) exists.
             brtcClient.onStreamAvailable((s) => {
                 console.log("Stream available:", s);
-                setInboundStream(s.mediaStream);
-                // The stream arriving means the call actually connected (answered),
-                // so we're truly in-call now — not just ringing.
-                setInCall(true);
+                // The gateway rides its accept decision on the stream itself. When it
+                // auto-accepted, connect straight through; otherwise prompt the user
+                // and wait for acceptStream/declineStream before playing any audio.
+                if (s.autoAccepted) {
+                    setInboundStream(s.mediaStream);
+                    setInCall(true);
+                } else {
+                    setIncomingCall(s);
+                }
             })
             brtcClient.onStreamUnavailable((s) => {
                 console.log("Stream unavailable:", s);
+                // The far side (or gateway) ended/declined the call; reset the UI out
+                // of the in-call/ringing state.
                 setInboundStream(null);
-                // The far side (or gateway) ended the call; reset the UI out of
-                // the in-call/ringing state.
                 setInCall(false);
+                setIncomingCall(null);
             })
             brtcClient.onReady((readyMetadata: ReadyMetadata) => {
                 console.log("Ready Metadata:", readyMetadata);
@@ -62,6 +76,20 @@ function App() {
         await prepBrtcClient(true)
     }
 
+    const handleAccept = async () => {
+        if (!brtcClient || !incomingCall) return;
+        await brtcClient.acceptStream();
+        setInboundStream(incomingCall.mediaStream);
+        setInCall(true);
+        setIncomingCall(null);
+    }
+
+    const handleDecline = async () => {
+        if (!brtcClient) return;
+        await brtcClient.declineStream();
+        setIncomingCall(null);
+    }
+
   // Fetch the WebSocket URL from env
   const gatewayUrl = process.env.REACT_APP_WSS_URL;
 
@@ -70,9 +98,12 @@ function App() {
         <Navbar />
         {brtcClient && (
             <>
-                <EndpointHandler bandwidthRtcClient={brtcClient} resetClient={resetClient} gatewayUrl={gatewayUrl} />
+                <EndpointHandler bandwidthRtcClient={brtcClient} resetClient={resetClient} gatewayUrl={gatewayUrl} autoAccept={autoAccept} setAutoAccept={setAutoAccept} />
                 <hr />
                 {brtcClientReady}
+                {incomingCall && (
+                    <IncomingCall stream={incomingCall} onAccept={handleAccept} onDecline={handleDecline} />
+                )}
                 {readyMetadata && (
                     <>
                     <h2>Bandwidth RTC Agent Sample</h2>
