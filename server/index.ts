@@ -28,6 +28,14 @@ app.use((req, res, next) => {
 
 const PROD_VOICE_URL = 'https://voice.bandwidth.com/api/v2';
 
+// Sentinel "to" value that signals a PlayAudio request rather than a real
+// endpoint-to-endpoint bridge. Sent from the frontend with a dummy toType of
+// ENDPOINT, since PlayAudio has no bridge peer (see pv-media-server-sidecar#196,
+// which uses a fixed dummy resourceId of "playAudio" with resourceType ENDPOINT
+// for the same reason).
+const PLAY_AUDIO_TARGET = 'playAudio';
+const DEFAULT_PLAY_AUDIO_URL = 'https://download.samplelib.com/mp3/sample-30s.mp3';
+
 function getEnvVars() {
     const env = process.env;
     const hasUserPass = !!env.BW_USERNAME && !!env.BW_PASSWORD;
@@ -338,6 +346,13 @@ app.post('/callbacks/bandwidth', async (req: Request, res: Response) => {
                     console.error('Error placing outbound call:', error.message);
                 }
                 return res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><Response/>`);
+            }
+            if (toType === 'ENDPOINT' && to === PLAY_AUDIO_TARGET) {
+                console.log(`Playing demo audio for endpoint ${endpointId}`);
+                return res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <PlayAudio>${DEFAULT_PLAY_AUDIO_URL}</PlayAudio>
+</Response>`);
             }
             if (toType === 'ENDPOINT') {
                 // Endpoint-to-endpoint has no PSTN leg to place. We answer the
