@@ -15,6 +15,13 @@
     word-break: break-all;
 }
 
+.play-audio-note {
+    font-size: 1rem;
+    text-align: center;
+    color: var(--grey55);
+    margin-bottom: 10px;
+}
+
 .call-controls {
     display: flex;
     justify-content: center;

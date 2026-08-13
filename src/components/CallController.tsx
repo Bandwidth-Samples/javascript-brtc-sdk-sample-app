@@ -67,6 +67,15 @@ function NumberInput ({ onChange, value }: {onChange: ChangeEventHandler, value:
 }
 
 
+// "Play Audio" isn't a real EndpointType from the SDK - there's no bridge peer to
+// dial. It's sent to the server as a dummy EndpointType.ENDPOINT request with a
+// fixed sentinel target, which tells the server to respond with a <PlayAudio>
+// BXML verb instead of bridging endpoints (see server/index.ts, and
+// pv-media-server-sidecar#196 which uses the same dummy-ENDPOINT convention).
+const PLAY_AUDIO_TYPE = 'PLAY_AUDIO';
+const PLAY_AUDIO_TARGET = 'playAudio';
+type DestinationType = EndpointType | typeof PLAY_AUDIO_TYPE;
+
 function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, connected}: {bandwidthRtcClient: BandwidthRtc, readyMetadata: ReadyMetadata, inCall: boolean, setInCall: (inCall: boolean) => void, connected: boolean} ) {
     if (!bandwidthRtcClient) {
         throw new Error("webrtcClient is required");
@@ -78,7 +87,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
     const [destNumber, setDestNumber] = useState<string>('');
     const [callStatus, setCallStatus] = useState('Select Connection Target');
     const [endpointTarget, setEndpointTarget] = useState('');
-    const [endpointType, setEndpointType] = useState<EndpointType>(EndpointType.PHONE_NUMBER);
+    const [endpointType, setEndpointType] = useState<DestinationType>(EndpointType.PHONE_NUMBER);
     const [dtmfDuration, setDtmfDuration] = useState<number>(300);
     const [dtmfSequence, setDtmfSequence] = useState<string>('');
 
@@ -114,7 +123,9 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
         // frozen during a call (the selector is disabled), so it still reflects
         // how this call was dialed.
         let result;
-        if (endpointType === EndpointType.ENDPOINT) {
+        if (endpointType === PLAY_AUDIO_TYPE) {
+            result = await bandwidthRtcClient.hangupConnection(PLAY_AUDIO_TARGET, EndpointType.ENDPOINT)
+        } else if (endpointType === EndpointType.ENDPOINT) {
             result = await bandwidthRtcClient.hangupConnection(endpointTarget, EndpointType.ENDPOINT)
         } else {
             // Ensure E.164 format: clean digits and add '+'
@@ -153,23 +164,39 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
         }
     }
 
+    const handleDialPlayAudio = async () => {
+        setCallStatus('Calling...');
+        let result = await bandwidthRtcClient.requestOutboundConnection(PLAY_AUDIO_TARGET, EndpointType.ENDPOINT)
+        if (result.accepted) {
+            setCallStatus('Ringing');
+            setInCall(true);
+        } else {
+            setCallStatus('Declined');
+        }
+    }
+
     const handleDial = async () => {
         if (endpointType === EndpointType.PHONE_NUMBER) {
             await handleDialPhone()
         } else if (endpointType === EndpointType.ENDPOINT) {
             await handleDialEndpoint()
+        } else if (endpointType === PLAY_AUDIO_TYPE) {
+            await handleDialPlayAudio()
         }
     }
 
 
     // A dial is allowed only when the destination for the selected type is filled
-    // in. CALL_ID is not implemented yet, so it can never be dialed.
-    const hasDestination =
-        endpointType === EndpointType.PHONE_NUMBER
-            ? destNumber.replace(/[^\d]/g, '').length > 0
-            : endpointType === EndpointType.ENDPOINT
-                ? endpointTarget.trim().length > 0
-                : false;
+    // in. CALL_ID is not implemented yet, so it can never be dialed. Play Audio
+    // has no destination to fill in - it always has a default audio file ready.
+    let hasDestination = false;
+    if (endpointType === EndpointType.PHONE_NUMBER) {
+        hasDestination = destNumber.replace(/[^\d]/g, '').length > 0;
+    } else if (endpointType === EndpointType.ENDPOINT) {
+        hasDestination = endpointTarget.trim().length > 0;
+    } else if (endpointType === PLAY_AUDIO_TYPE) {
+        hasDestination = true;
+    }
 
     const endCallButtonProps = {
         type: 'end-call',
@@ -204,12 +231,13 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
             <select
                 disabled={inCall}
                 value={endpointType}
-                onChange={e => setEndpointType(e.target.value as EndpointType)}
+                onChange={e => setEndpointType(e.target.value as DestinationType)}
                 style={{ marginBottom: '10px' }}
             >
                 {Object.values(EndpointType).map(type => (
                     <option key={type} value={type}>{type}</option>
                 ))}
+                <option value={PLAY_AUDIO_TYPE}>PLAY_AUDIO</option>
             </select>
 
             <h2>{!inCall && callStatus}{inCall && !connected && "Ringing"}{inCall && connected && "In Call"}</h2>
@@ -220,6 +248,9 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
                     ? <input type="text" placeholder="Endpoint ID" value={endpointTarget} onChange={(value) => setEndpointTarget(value.target.value)} />
                     : <div className='dialed-number'>{endpointTarget}</div>}
                 </>
+            )}
+            {endpointType == PLAY_AUDIO_TYPE && (
+                <div className='play-audio-note'>Will play a 30 second sample audio file</div>
             )}
             {endpointType == EndpointType.CALL_ID && (
                 <>
