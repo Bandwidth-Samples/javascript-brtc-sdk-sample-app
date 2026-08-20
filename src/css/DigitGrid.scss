@@ -38,6 +38,14 @@
   }
 }
 
+// Flashes when the SDK confirms a tone was actually sent (onDtmfSent), not on click.
+.digit-sent {
+  color: white;
+  border: 2px solid $blue70;
+  background-color: $blue70;
+  transition: background-color 0.1s ease-in, color 0.1s ease-in;
+}
+
 .digit-number {
   font-size: 2rem;
   font-weight: 600;
