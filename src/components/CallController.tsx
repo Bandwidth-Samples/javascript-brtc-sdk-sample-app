@@ -1,4 +1,4 @@
-import React, {ChangeEventHandler, useState} from "react";
+import React, {ChangeEventHandler, useEffect, useState} from "react";
 
 import '../css/DigitGrid.scss';
 import '../css/CallControlButton.scss';
@@ -90,6 +90,17 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
     const [endpointType, setEndpointType] = useState<DestinationType>(EndpointType.PHONE_NUMBER);
     const [dtmfDuration, setDtmfDuration] = useState<number>(300);
     const [dtmfSequence, setDtmfSequence] = useState<string>('');
+    // Last tone actually played on the outbound stream, per the SDK's onDtmfSent
+    // event - distinct from handleDigitClick, which only fires on user intent.
+    const [lastDtmfSent, setLastDtmfSent] = useState<string | null>(null);
+
+    useEffect(() => {
+        bandwidthRtcClient.onDtmfSent((event) => {
+            console.log("DTMF sent:", event);
+            setLastDtmfSent(event.tone);
+            setTimeout(() => setLastDtmfSent(null), 400);
+        });
+    }, [bandwidthRtcClient]);
 
     const handleSendDtmfSequence = () => {
         console.log(`Sending DTMF sequence: ${dtmfSequence}, duration: ${dtmfDuration}ms`);
@@ -288,7 +299,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
                             <button onClick={handleSendDtmfSequence} disabled={!dtmfSequence}>Send DTMF</button>
                         </div>
                     )}
-                    <DigitGrid onClick={handleDigitClick} />
+                    <DigitGrid onClick={handleDigitClick} activeDigit={lastDtmfSent ?? undefined} />
                 </>
             )}
             <div className='call-start-end'>
