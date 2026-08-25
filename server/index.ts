@@ -36,6 +36,12 @@ const PROD_VOICE_URL = 'https://voice.bandwidth.com/api/v2';
 const PLAY_AUDIO_TARGET = 'playAudio';
 const DEFAULT_PLAY_AUDIO_URL = 'https://download.samplelib.com/mp3/sample-30s.mp3';
 
+// Sentinel "to" prefix that signals a Conference join rather than a real
+// endpoint-to-endpoint bridge. Sent from the frontend with a dummy toType of
+// ENDPOINT, same convention as PLAY_AUDIO_TARGET above, but prefixed since the
+// conference id is caller-chosen rather than fixed.
+const CONFERENCE_TARGET_PREFIX = 'conference:';
+
 function getEnvVars() {
     const env = process.env;
     const hasUserPass = !!env.BW_USERNAME && !!env.BW_PASSWORD;
@@ -352,6 +358,14 @@ app.post('/callbacks/bandwidth', async (req: Request, res: Response) => {
                 return res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <PlayAudio>${DEFAULT_PLAY_AUDIO_URL}</PlayAudio>
+</Response>`);
+            }
+            if (toType === 'ENDPOINT' && to.startsWith(CONFERENCE_TARGET_PREFIX)) {
+                const conferenceId = to.slice(CONFERENCE_TARGET_PREFIX.length);
+                console.log(`Joining endpoint ${endpointId} to conference ${conferenceId}`);
+                return res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Conference>${conferenceId}</Conference>
 </Response>`);
             }
             if (toType === 'ENDPOINT') {

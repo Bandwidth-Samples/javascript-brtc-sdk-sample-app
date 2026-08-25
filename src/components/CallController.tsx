@@ -74,7 +74,15 @@ function NumberInput ({ onChange, value }: {onChange: ChangeEventHandler, value:
 // pv-media-server-sidecar#196 which uses the same dummy-ENDPOINT convention).
 const PLAY_AUDIO_TYPE = 'PLAY_AUDIO';
 const PLAY_AUDIO_TARGET = 'playAudio';
-type DestinationType = EndpointType | typeof PLAY_AUDIO_TYPE;
+
+// "Conference" isn't a real EndpointType from the SDK either - like PLAY_AUDIO,
+// it's sent as a dummy EndpointType.ENDPOINT request. Unlike PLAY_AUDIO, the
+// conference has a caller-chosen id, so the sentinel is a prefix rather than a
+// fixed string; the server strips it and responds with a <Conference> BXML verb.
+// Endpoints that dial the same conference id are bridged into the same room.
+const CONFERENCE_TYPE = 'CONFERENCE';
+const CONFERENCE_TARGET_PREFIX = 'conference:';
+type DestinationType = EndpointType | typeof PLAY_AUDIO_TYPE | typeof CONFERENCE_TYPE;
 
 function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, connected}: {bandwidthRtcClient: BandwidthRtc, readyMetadata: ReadyMetadata, inCall: boolean, setInCall: (inCall: boolean) => void, connected: boolean} ) {
     if (!bandwidthRtcClient) {
@@ -87,6 +95,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
     const [destNumber, setDestNumber] = useState<string>('');
     const [callStatus, setCallStatus] = useState('Select Connection Target');
     const [endpointTarget, setEndpointTarget] = useState('');
+    const [conferenceId, setConferenceId] = useState('');
     const [endpointType, setEndpointType] = useState<DestinationType>(EndpointType.PHONE_NUMBER);
     const [dtmfDuration, setDtmfDuration] = useState<number>(300);
     const [dtmfSequence, setDtmfSequence] = useState<string>('');
@@ -125,6 +134,8 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
         let result;
         if (endpointType === PLAY_AUDIO_TYPE) {
             result = await bandwidthRtcClient.hangupConnection(PLAY_AUDIO_TARGET, EndpointType.ENDPOINT)
+        } else if (endpointType === CONFERENCE_TYPE) {
+            result = await bandwidthRtcClient.hangupConnection(CONFERENCE_TARGET_PREFIX + conferenceId, EndpointType.ENDPOINT)
         } else if (endpointType === EndpointType.ENDPOINT) {
             result = await bandwidthRtcClient.hangupConnection(endpointTarget, EndpointType.ENDPOINT)
         } else {
@@ -175,6 +186,17 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
         }
     }
 
+    const handleDialConference = async () => {
+        setCallStatus('Calling...');
+        let result = await bandwidthRtcClient.requestOutboundConnection(CONFERENCE_TARGET_PREFIX + conferenceId, EndpointType.ENDPOINT)
+        if (result.accepted) {
+            setCallStatus('Ringing');
+            setInCall(true);
+        } else {
+            setCallStatus('Declined');
+        }
+    }
+
     const handleDial = async () => {
         if (endpointType === EndpointType.PHONE_NUMBER) {
             await handleDialPhone()
@@ -182,6 +204,8 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
             await handleDialEndpoint()
         } else if (endpointType === PLAY_AUDIO_TYPE) {
             await handleDialPlayAudio()
+        } else if (endpointType === CONFERENCE_TYPE) {
+            await handleDialConference()
         }
     }
 
@@ -196,6 +220,8 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
         hasDestination = endpointTarget.trim().length > 0;
     } else if (endpointType === PLAY_AUDIO_TYPE) {
         hasDestination = true;
+    } else if (endpointType === CONFERENCE_TYPE) {
+        hasDestination = conferenceId.trim().length > 0;
     }
 
     const endCallButtonProps = {
@@ -238,6 +264,7 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
                     <option key={type} value={type}>{type}</option>
                 ))}
                 <option value={PLAY_AUDIO_TYPE}>PLAY_AUDIO</option>
+                <option value={CONFERENCE_TYPE}>CONFERENCE</option>
             </select>
 
             <h2>{!inCall && callStatus}{inCall && !connected && "Ringing"}{inCall && connected && "In Call"}</h2>
@@ -251,6 +278,14 @@ function CallController({bandwidthRtcClient, readyMetadata, inCall, setInCall, c
             )}
             {endpointType == PLAY_AUDIO_TYPE && (
                 <div className='play-audio-note'>Will play a 30 second sample audio file</div>
+            )}
+            {endpointType == CONFERENCE_TYPE && (
+                <>
+                {!inCall
+                    ? <input type="text" placeholder="Conference ID" value={conferenceId} onChange={(value) => setConferenceId(value.target.value)} />
+                    : <div className='dialed-number'>{conferenceId}</div>}
+                <div className='play-audio-note'>Endpoints that dial the same Conference ID are bridged together</div>
+                </>
             )}
             {endpointType == EndpointType.CALL_ID && (
                 <>
