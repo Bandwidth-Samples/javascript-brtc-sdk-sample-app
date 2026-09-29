@@ -184,6 +184,7 @@ function handleCallDisconnect(callId: string, cause?: string) {
     endpointCallIdMap.delete(callId);
 }
 
+
 function processInboundCall(callId: string): string {
     const requestingEndpointId = endpointCallIdMap.get(callId);
     if (!requestingEndpointId) {
@@ -365,7 +366,7 @@ app.post('/callbacks/bandwidth', async (req: Request, res: Response) => {
                 console.log(`Joining endpoint ${endpointId} to conference ${conferenceId}`);
                 return res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Conference>${conferenceId}</Conference>
+    <Conference conferenceEventUrl="${CALLBACK_BASE_URL}/conferenceStatus">${conferenceId}</Conference>
 </Response>`);
             }
             if (toType === 'ENDPOINT') {
@@ -449,6 +450,13 @@ app.post('/calls/status', async (req: Request, res: Response) => {
 // endpoint-to-endpoint connect). Logged for observability; no BXML response needed.
 app.post('/connectstatus', (req: Request, res: Response) => {
     console.log('Connect status event:', JSON.stringify(req.body, null, 2));
+    res.sendStatus(200);
+});
+
+// POST /conferenceStatus - Conference lifecycle events (created, member join/exit,
+// completed), set as conferenceEventUrl in the <Conference> BXML. Logged only.
+app.post('/conferenceStatus', (req: Request, res: Response) => {
+    console.log('Conference status event:', JSON.stringify(req.body, null, 2));
     res.sendStatus(200);
 });
 
